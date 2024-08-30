@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+    <rect width="128" height="128" fill="white" />
+    <circle cx="64" cy="64" r="40" fill="black" />
+    <polygon points="64,32 64,96, 128,64" fill="black" />
+
+    <mask id="white_spot_mask">
+        <rect width="128" height="64" y="64" fill="white" />
+        <rect width="128" height="64" fill="black" />
+    </mask>
+
+    <circle cx="64" cy="64" r="36" fill="white" mask="url(#white_spot_mask)" />
+
+    <circle cx="72" cy="50" r="8" fill="black" stroke="white" stroke-width="3" />
+</svg>
