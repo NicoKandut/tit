@@ -1,9 +1,7 @@
-use core::{
-    change::Change, change_kind::ChangeKind, commit::Commit, repository::TitRepository, COMMIT_DIR,
-    TIT_DIR,
-};
 use std::fs;
 use std::path::Path;
+use core::change::{Change, ChangeKind};
+use core::{commit::Commit, repository::TitRepository, TIT_DIR, COMMIT_DIR};
 
 pub fn run() {
     let working_dir = std::env::current_dir().expect("Failed to get current working directory!");

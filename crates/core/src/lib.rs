@@ -1,5 +1,4 @@
 pub mod change;
-pub mod change_kind;
 pub mod commit;
 pub mod repository;
 

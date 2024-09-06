@@ -1,6 +1,11 @@
 use bincode::{Decode, Encode};
 
-use crate::change_kind::ChangeKind;
+#[derive(Encode, Decode, Debug, Clone, Copy, Hash)]
+pub enum ChangeKind {
+    ADDITION = 0,
+    DELETION = 1,
+    UPDATE = 2,
+}
 
 #[derive(Encode, Decode, Debug, Clone, Hash)]
 pub struct Change {
