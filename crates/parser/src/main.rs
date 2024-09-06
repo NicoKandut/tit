@@ -1,36 +1,25 @@
-use tree_sitter::{Node, Parser};
+mod tree;
+mod errors;
+mod parser;
+
+use tree_sitter::{Node};
+use crate::parser::TitParser;
 
 fn main() {
-    let mut parser = Parser::new();
-    parser.set_language(&tree_sitter_c::language()).unwrap();
-
     let src_1 = r#"
     int main() {
       char* x = "hello";
     }
     "#;
-    let tree_1 = parser.parse(src_1, None).unwrap();
-    // print_child_nodes(&tree_1.root_node(), src_1.as_bytes(), 0);
 
     let src_2 = r#"
     int main() {
       int x = 0;
     }
     "#;
-    let tree_2 = parser.parse(src_2, None).unwrap();
-    // print_child_nodes(&tree_2.root_node(), src_2.as_bytes(), 0);
-
-    let diffs = detect_tree_differences(
-        &tree_1.root_node(),
-        &tree_2.root_node(),
-        src_1.as_bytes(),
-        &src_2.as_bytes(),
-        "root",
-        0,
-    );
-    for (offset, diff) in diffs {
-        println!("{:indent$}{}", "", diff, indent = offset * 2);
-    }
+    
+    let mut parser = TitParser::new(&tree_sitter_c::language()).unwrap();
+    let tree = parser.parse(src_1).unwrap();
 }
 
 fn print_child_nodes(node: &Node, source: &[u8], offset: u8) {
