@@ -12,10 +12,7 @@ pub struct Commit {
 
 impl Commit {
     pub fn new(message: String, changes: Vec<Change>) -> Self {
-        Self {
-            message,
-            changes,
-        }
+        Self { message, changes }
     }
 
     pub fn message(&self) -> &str {

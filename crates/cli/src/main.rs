@@ -22,9 +22,7 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 fn main() {
     let cli = Cli::parse();
-
-
-
+    
     let subcommand = cli.command.unwrap_or(Subcommands::Version);
 
     match subcommand {

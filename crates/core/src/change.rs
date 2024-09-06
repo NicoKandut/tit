@@ -1,6 +1,6 @@
 use bincode::{Decode, Encode};
 
-use crate::changekind::ChangeKind;
+use crate::change_kind::ChangeKind;
 
 #[derive(Encode, Decode, Debug, Clone, Hash)]
 pub struct Change {
