@@ -176,6 +176,7 @@ name = "parser"
 version = "0.1.0"
 dependencies = [
  "cc",
+ "core",
  "tree-sitter",
  "tree-sitter-c",
 ]
@@ -284,12 +285,12 @@ dependencies = [
 
 [[package]]
 name = "tree-sitter-c"
-version = "0.21.4"
+version = "0.23.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f956d5351d62652864a4ff3ae861747e7a1940dc96c9998ae400ac0d3ce30427"
+checksum = "e795ad541f7ae6a80d22975296340a75a12a29afd3a7089f4368021613728e17"
 dependencies = [
  "cc",
- "tree-sitter",
+ "tree-sitter-language",
 ]
 
 [[package]]
