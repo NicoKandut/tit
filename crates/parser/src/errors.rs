@@ -8,6 +8,7 @@ pub enum ParsingError {
 
 #[derive(Debug, Clone)]
 pub enum ChangeDetectionError {
-    NoValueForNode { path: Vec<u16>, node: String },
+    NoNodeForPathError { path: Vec<u16> },
+    NoValueForNodeError { path: Vec<u16>, node: String },
 }
 
