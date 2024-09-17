@@ -1,6 +1,7 @@
+use core::change::{Change, ChangeKind};
+use core::{commit::Commit, repository::TitRepository, COMMIT_DIR, TIT_DIR};
 use std::fs;
 use std::path::Path;
-use core::{commit::Commit, change::Change, repository::TitRepository, TIT_DIR, COMMIT_DIR};
 
 pub fn run() {
     let working_dir = std::env::current_dir().expect("Failed to get current working directory!");
@@ -25,17 +26,17 @@ pub fn run() {
     let commit = Commit::new(
         "feat: add stuff".to_string(),
         vec![
-            Change::Addition {
+            Change {
                 path: vec![0, 1, 1, 2],
-                kind: "primitive_type".to_string(),
-                value: Some("int".to_string())
+                kind: ChangeKind::Addition {
+                    kind: "primitive_type".to_string(),
+                    value: Some("int".to_string()),
+                },
             },
-            Change::Deletion {
-                path: vec![0, 1]
-            },
-            Change::ValueUpdate {
+            Change { path: vec![0, 1], kind: ChangeKind::Deletion },
+            Change {
                 path: vec![0, 1, 2, 2, 2],
-                update: "int".to_string()
+                kind: ChangeKind::ValueUpdate("int".to_string())
             },
         ],
     );

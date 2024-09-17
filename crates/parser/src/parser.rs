@@ -7,9 +7,9 @@ pub struct TitParser {
 }
 
 impl TitParser {
-    pub fn new(language: &Language) -> Result<Self, LanguageError> {
+    pub fn new(language: Language) -> Result<Self, LanguageError> {
         let mut parser = Parser::new();
-        match parser.set_language(language) {
+        match parser.set_language(&language) {
             Ok(_) => Ok(Self { parser }),
             Err(e) => Err(e),
         }
