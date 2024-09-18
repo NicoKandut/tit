@@ -7,9 +7,9 @@ pub fn run(message: String) {
     let commit = core::Commit::new(
         message,
         vec![
-            core::Change::new(core::ChangeKind::ADDITION, "0".to_string(), "node_content".to_string()),
-            core::Change::new(core::ChangeKind::ADDITION, "0,0".to_string(), "node_content_2".to_string()),
-            core::Change::new(core::ChangeKind::ADDITION, "0,1".to_string(), "node_content_3".to_string()),
+            core::Change::new(core::ChangeKind::Addition, vec![0], Some("node_content".to_string())),
+            core::Change::new(core::ChangeKind::Addition, vec![0,0], Some("node_content_2".to_string())),
+            core::Change::new(core::ChangeKind::Addition, vec![0,1], Some("node_content_3".to_string())),
         ],
         core::get_epoch_millis()
     );

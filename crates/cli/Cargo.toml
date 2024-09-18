@@ -6,3 +6,5 @@ edition = "2021"
 [dependencies]
 clap = { version="4.5.16", features = [ "derive" ] }
 core = { path = "../core"}
+network = { path = "../network" }
+bincode = "2.0.0-rc.3"

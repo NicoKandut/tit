@@ -132,8 +132,10 @@ checksum = "1462739cb27611015575c0c11df5df7601141071f07518d56fcc1be504cbec97"
 name = "cli"
 version = "0.1.17"
 dependencies = [
+ "bincode",
  "clap",
  "core",
+ "network",
 ]
 
 [[package]]
@@ -209,6 +211,13 @@ name = "memchr"
 version = "2.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "78ca9ab1a0babb1e7d5695e3530886289c18cf2f87ec19a575a0abdce112e3a3"
+
+[[package]]
+name = "network"
+version = "0.1.0"
+dependencies = [
+ "bincode",
+]
 
 [[package]]
 name = "parser"
@@ -292,6 +301,14 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "server"
+version = "0.1.0"
+dependencies = [
+ "bincode",
+ "network",
 ]
 
 [[package]]
