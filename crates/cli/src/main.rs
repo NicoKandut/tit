@@ -1,7 +1,10 @@
-mod init;
-
 use std::fs;
+
 use clap::{Parser, Subcommand};
+
+mod init;
+mod commit;
+mod commits;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -16,6 +19,11 @@ enum Subcommands {
     Init,
     Version,
     Delete,
+    Commit {
+        #[arg(long, short = 'm')]
+        message: String
+    },
+    Commits,
 }
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -23,14 +31,12 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 fn main() {
     let cli = Cli::parse();
 
-
-
     let subcommand = cli.command.unwrap_or(Subcommands::Version);
 
     match subcommand {
-        Subcommands::Init => {
-            init::run();
-        }
+        Subcommands::Init => init::run(),
+        Subcommands::Commit { message } => commit::run(message),
+        Subcommands::Commits => commits::run(),
         Subcommands::Version => {
             println!("Version {VERSION}");
         }

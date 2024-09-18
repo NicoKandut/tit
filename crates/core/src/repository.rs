@@ -1,9 +1,10 @@
 use std::fs;
 use std::hash::Hash;
 use std::io::{Read, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::Commit;
+use crate::RepositoryError::RepositoryError;
 
 pub const TIT_DIR: &str = ".tit";
 pub const COMMIT_DIR: &str = "commits";
@@ -18,24 +19,26 @@ impl TitRepository {
         Self { root }
     }
 
-    pub fn try_init(&self) {
+    pub fn try_init(&self) -> Result<(), RepositoryError> {
         let tit_exists = fs::read_dir(&self.root)
             .expect("Failed to read entries of cwd")
             .any(|entry| entry.expect("Failed to read entry").file_name() == TIT_DIR);
 
         if tit_exists {
-            println!("Repository already initialized!");
-            return;
+            return Err(RepositoryError("Repository already initialized!"));
         }
 
         self.init()
     }
 
-    fn init(&self) {
+    fn init(&self) -> Result<(), RepositoryError>{
         println!("Initializing project...");
         fs::create_dir(TIT_DIR)
-            .expect("Failed to create .tit folder");
+            .map_err(|err| RepositoryError("Failed to create .tit folder"))?;
+        fs::create_dir(self.get_commits_dir())
+            .map_err(|err| RepositoryError("Failed to create commits folder"))?;
         println!("Done");
+        Ok(())
     }
 
     //<editor-fold> File & Directory Paths
@@ -66,15 +69,24 @@ impl TitRepository {
         let config = bincode::config::standard();
         let commit_path = self.get_commit_file(id);
         let mut bytes = vec![];
-
         fs::File::open(commit_path)
             .expect("Failed to open commit file!")
             .read_to_end(&mut bytes)
             .expect("Failed to read commit file!");
-        
         let (commit, _) = bincode::decode_from_slice(&bytes, config)
             .expect("Failed to decode commit");
-
         commit
+    }
+
+    pub fn read_all_commits(&self) {
+        let commit_dir = self.get_commits_dir();
+        let commit_files = fs::read_dir(commit_dir)
+            .expect("Failed to read commits directory!");
+        for commit_file in commit_files {
+            let commit_dir_entry = commit_file.expect("Failed to read commit dir entry");
+            let id = commit_dir_entry.file_name();
+            let commit = self.read_commit(id.to_str().unwrap());
+            println!("COMMIT: {}", commit.message())
+        }
     }
 }
