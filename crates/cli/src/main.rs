@@ -30,16 +30,13 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 fn main() {
     let cli = Cli::parse();
-
     let subcommand = cli.command.unwrap_or(Subcommands::Version);
 
     match subcommand {
         Subcommands::Init => init::run(),
         Subcommands::Commit { message } => commit::run(message),
         Subcommands::Commits => commits::run(),
-        Subcommands::Version => {
-            println!("Version {VERSION}");
-        }
+        Subcommands::Version => println!("Version {VERSION}"),
         Subcommands::Delete => {
             let working_dir = std::env::current_dir().expect("Failed to get current working directory!");
             let tit_dir = working_dir.join(core::TIT_DIR);

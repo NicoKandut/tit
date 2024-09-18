@@ -1,12 +1,12 @@
 mod commit;
 mod change;
-mod changekind;
+mod error;
 mod repository;
-mod RepositoryError;
-
 
 pub use commit::*;
 pub use change::*;
-pub use changekind::*;
+pub use error::*;
 pub use repository::*;
 
+pub const TIT_DIR: &str = ".tit";
+pub const COMMIT_DIR: &str = "commits";
