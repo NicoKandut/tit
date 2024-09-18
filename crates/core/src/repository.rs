@@ -1,12 +1,10 @@
 use std::fs;
 use std::io::{Read, Write};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use crate::Commit;
 use crate::error::RepositoryError;
-
-pub const TIT_DIR: &str = ".tit";
-pub const COMMIT_DIR: &str = "commits";
+use crate::TIT_DIR;
 
 #[derive(Debug, Clone)]
 pub struct TitRepository {
@@ -33,9 +31,9 @@ impl TitRepository {
     fn init(&self) -> Result<(), RepositoryError>{
         println!("Initializing project...");
         fs::create_dir(TIT_DIR)
-            .map_err(|err| RepositoryError("Failed to create .tit folder"))?;
+            .map_err(|_| RepositoryError("Failed to create .tit folder"))?;
         fs::create_dir(self.get_commits_dir())
-            .map_err(|err| RepositoryError("Failed to create commits folder"))?;
+            .map_err(|_| RepositoryError("Failed to create commits folder"))?;
         println!("Done");
         Ok(())
     }
