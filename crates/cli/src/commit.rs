@@ -1,4 +1,4 @@
-use std::time::{Duration, SystemTime};
+use core::Node;
 
 pub fn run(message: String) {
     let working_dir = std::env::current_dir().expect("Failed to get current working directory!");
@@ -7,9 +7,9 @@ pub fn run(message: String) {
     let commit = core::Commit::new(
         message,
         vec![
-            core::Change::new(core::ChangeKind::Addition, vec![0], Some("node_content".to_string())),
-            core::Change::new(core::ChangeKind::Addition, vec![0,0], Some("node_content_2".to_string())),
-            core::Change::new(core::ChangeKind::Addition, vec![0,1], Some("node_content_3".to_string())),
+            core::Change::Addition([0].to_vec(), Node { kind: "node_kind_1".to_string(), value: Some("node_content_1".to_string()) }),
+            core::Change::Addition([0, 0].to_vec(), Node { kind: "node_kind_2".to_string(), value: Some("node_content_2".to_string()) }),
+            core::Change::Addition([0, 1].to_vec(), Node { kind: "node_kind_3".to_string(), value: Some("node_content_3".to_string()) }),
         ],
         core::get_epoch_millis()
     );
