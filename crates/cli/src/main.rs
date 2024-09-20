@@ -6,6 +6,7 @@ mod commit;
 mod commits;
 mod init;
 mod remote;
+mod download;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -29,6 +30,10 @@ enum Subcommands {
         #[arg(long, short = 's')]
         server: String,
     },
+    Download {
+        #[arg(long, short = 's')]
+        server: String,
+    }
 }
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -45,9 +50,10 @@ fn main() {
         Subcommands::Delete => {
             let working_dir =
                 std::env::current_dir().expect("Failed to get current working directory!");
-            let tit_dir = working_dir.join(core::TIT_DIR);
+            let tit_dir = working_dir.join(kern::TIT_DIR);
             fs::remove_dir_all(tit_dir).expect("Failed to remove tit dir!");
         }
         Subcommands::Remote { server } => remote::add_remote(&server, "test"),
+        Subcommands::Download { server } => download::download(&server, "test"),
     }
 }

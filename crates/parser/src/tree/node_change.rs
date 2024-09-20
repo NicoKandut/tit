@@ -1,5 +1,5 @@
 use indextree::NodeId;
-use core::Node;
+use kern::Node;
 
 type ParentNodeId = NodeId;
 

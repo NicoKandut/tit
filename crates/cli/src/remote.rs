@@ -8,8 +8,8 @@ pub fn add_remote(server: &str, project: &str) {
     network::write_message(&mut stream, network::TitClientMessage::Hello);
 
     match network::read_message(&mut stream) {
-        network::TitServerMessage::Hello => print!("Server responded with Hello"),
-        network::TitServerMessage::Error => print!("Server responded with Error"),
+        network::TitServerMessage::Hello => println!("Server responded with Hello"),
+        _ => println!("Server responded with Error"),
     }
 
     network::write_message(&mut stream, network::TitClientMessage::Disconnect);

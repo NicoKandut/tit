@@ -7,9 +7,9 @@ use std::str::Utf8Error;
 use indextree::{Arena, NodeId};
 use tree_sitter::Tree;
 
-use core::Change;
-use core::Node;
-use core::Path;
+use kern::Change;
+use kern::Node;
+use kern::Path;
 
 use crate::errors::ParsingError;
 use crate::tree::kinds::{insignificant_named_kinds, significant_unnamed_kinds, Kinds};

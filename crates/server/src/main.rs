@@ -1,8 +1,10 @@
 use network;
 use std::net::TcpListener;
+use kern;
 
 fn main() {
-    let listener = TcpListener::bind("127.0.0.1:6969").expect("Server failed to bind to port 6969");
+    let listener =
+        TcpListener::bind("127.0.0.1:6969").expect("Server failed to bind to port 6969");
     println!("Server listening on port 6969");
     loop {
         match listener.accept() {
@@ -29,6 +31,20 @@ fn handle_client(mut stream: std::net::TcpStream) {
             network::TitClientMessage::Error => {
                 println!("Received Error message");
                 network::write_message(&mut stream, network::TitServerMessage::Error);
+            }
+            network::TitClientMessage::DownloadIndex => {
+                println!("Received DownloadIndex message");
+                let commits = vec!["commit1".to_string(), "commit2".to_string()];
+                network::write_message(&mut stream, network::TitServerMessage::Index { commits });
+            }
+            network::TitClientMessage::DownloadFile(file) => {
+                println!("Received DownloadFile message: {}", file);
+                let commit = kern::Commit::new("commit1".to_string(), vec![], 0);
+                network::write_message(&mut stream, network::TitServerMessage::CommitFile { commit });
+            }
+            network::TitClientMessage::UploadFile(commit) => {
+                println!("Received UploadFile message: {}", commit);
+                network::write_message(&mut stream, network::TitServerMessage::Hello);
             }
             network::TitClientMessage::Disconnect => {
                 println!("Received Disconnect message");

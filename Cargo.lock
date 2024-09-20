@@ -134,7 +134,7 @@ version = "0.1.17"
 dependencies = [
  "bincode",
  "clap",
- "core",
+ "kern",
  "network",
 ]
 
@@ -143,13 +143,6 @@ name = "colorchoice"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d3fd119d74b830634cea2a0f58bbd0d54540518a14397557951e79340abc28c0"
-
-[[package]]
-name = "core"
-version = "0.1.0"
-dependencies = [
- "bincode",
-]
 
 [[package]]
 name = "either"
@@ -207,6 +200,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "kern"
+version = "0.1.0"
+dependencies = [
+ "bincode",
+]
+
+[[package]]
 name = "memchr"
 version = "2.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -217,6 +217,7 @@ name = "network"
 version = "0.1.0"
 dependencies = [
  "bincode",
+ "kern",
 ]
 
 [[package]]
@@ -224,8 +225,8 @@ name = "parser"
 version = "0.1.0"
 dependencies = [
  "cc",
- "core",
  "indextree",
+ "kern",
  "tree-sitter",
  "tree-sitter-c",
 ]
@@ -308,6 +309,7 @@ name = "server"
 version = "0.1.0"
 dependencies = [
  "bincode",
+ "kern",
  "network",
 ]
 
