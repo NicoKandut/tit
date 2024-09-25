@@ -135,4 +135,6 @@ fn test_05() {
     let changes = tree1.detect_changes(&tree2);
     
     assert_eq!(changes.len(), 0);
+    
+    println!("{:?}", tree1);
 }
