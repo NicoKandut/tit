@@ -1,9 +1,9 @@
 use bincode::{self, Decode, Encode};
+use kern;
 use std::{
     io::{Read, Write},
     net::TcpStream,
 };
-use kern;
 
 #[derive(Debug, Encode, Decode, Default)]
 pub enum TitClientMessage {
@@ -11,9 +11,23 @@ pub enum TitClientMessage {
     #[default]
     Error,
     Disconnect,
-    DownloadIndex,
-    DownloadFile(String),
-    UploadFile(kern::Commit),
+    CreateRepository {
+        name: String,
+    },
+    DownloadIndex {
+        project: String,
+    },
+    DownloadFile {
+        commit: String
+    },
+    UploadFile {
+        commit: kern::Commit,
+        project: String,
+    },
+    OfferCommits {
+        project: String,
+        commits: Vec<String>,
+    },
 }
 
 #[derive(Debug, Encode, Decode, Default)]
@@ -26,6 +40,10 @@ pub enum TitServerMessage {
     },
     CommitFile {
         commit: kern::Commit,
+    },
+    RepositoryCreated,
+    RequestCommitUpload {
+        commits: Vec<String>,
     },
 }
 

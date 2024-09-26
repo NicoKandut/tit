@@ -7,6 +7,7 @@ mod commits;
 mod init;
 mod remote;
 mod download;
+mod upload;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -33,6 +34,20 @@ enum Subcommands {
     Download {
         #[arg(long, short = 's')]
         server: String,
+        #[arg(long, short = 'p')]
+        project: String
+    },
+    Create {
+        #[arg(long, short = 's')]
+        server: String,
+        #[arg(long, short = 'n')]
+        name: String
+    },
+    Upload {
+        #[arg(long, short = 's')]
+        server: String,
+        #[arg(long, short = 'p')]
+        project: String
     }
 }
 
@@ -54,6 +69,8 @@ fn main() {
             fs::remove_dir_all(tit_dir).expect("Failed to remove tit dir!");
         }
         Subcommands::Remote { server } => remote::add_remote(&server, "test"),
-        Subcommands::Download { server } => download::download(&server, "test"),
+        Subcommands::Download { server, project } => download::download(&server, &project),
+        Subcommands::Create { server, name } => upload::create_repo(&server, &name),
+        Subcommands::Upload { server, project } => upload::upload_all(&server, &project),
     }
 }

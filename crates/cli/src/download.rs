@@ -8,7 +8,12 @@ pub fn download(server: &str, project: &str) {
     let mut stream = std::net::TcpStream::connect(server).expect("Failed to connect to server");
 
     println!("Downloading index.");
-    network::write_message(&mut stream, network::TitClientMessage::DownloadIndex);
+    network::write_message(
+        &mut stream,
+        network::TitClientMessage::DownloadIndex {
+            project: project.to_string(),
+        },
+    );
 
     let message = network::read_message::<TitServerMessage>(&mut stream);
     let commits = match message {
@@ -22,7 +27,10 @@ pub fn download(server: &str, project: &str) {
         // check if the commit exists locally
 
         println!("  - Downloading commit {}", commit);
-        network::write_message(&mut stream, network::TitClientMessage::DownloadFile(commit));
+        network::write_message(
+            &mut stream,
+            network::TitClientMessage::DownloadFile { commit },
+        );
         let message = network::read_message::<TitServerMessage>(&mut stream);
         let commit = match message {
             TitServerMessage::CommitFile { commit } => commit.clone(),

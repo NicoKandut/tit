@@ -1,2 +1,6 @@
 /target
 /.idea
+
+# Server Repositories
+/repos
+/.tit

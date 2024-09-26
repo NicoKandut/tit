@@ -1,9 +1,9 @@
 use std::fs;
 use std::io::{Read, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
-use crate::Commit;
 use crate::error::RepositoryError;
+use crate::Commit;
 use crate::TIT_DIR;
 
 #[derive(Debug, Clone)]
@@ -22,18 +22,19 @@ impl TitRepository {
             .any(|entry| entry.expect("Failed to read entry").file_name() == crate::TIT_DIR);
 
         if tit_exists {
-            return Err(RepositoryError("Repository already initialized!"));
+            return Err(RepositoryError("Repository already initialized!", None));
         }
 
         self.init()
     }
 
-    fn init(&self) -> Result<(), RepositoryError>{
+    fn init(&self) -> Result<(), RepositoryError> {
+        let root = Path::new(&self.root);
         println!("Initializing project...");
-        fs::create_dir(TIT_DIR)
-            .map_err(|_| RepositoryError("Failed to create .tit folder"))?;
-        fs::create_dir(self.get_commits_dir())
-            .map_err(|_| RepositoryError("Failed to create commits folder"))?;
+        fs::create_dir(root.join(TIT_DIR))
+            .map_err(|e| RepositoryError("Failed to create .tit folder", Some(e)))?;
+        fs::create_dir(root.join(self.get_commits_dir()))
+            .map_err(|e| RepositoryError("Failed to create commits folder", Some(e)))?;
         println!("Done");
         Ok(())
     }
@@ -72,20 +73,28 @@ impl TitRepository {
             .expect("Failed to open commit file!")
             .read_to_end(&mut bytes)
             .expect("Failed to read commit file!");
-        let (commit, _) = bincode::decode_from_slice(&bytes, config)
-            .expect("Failed to decode commit");
+        let (commit, _) =
+            bincode::decode_from_slice(&bytes, config).expect("Failed to decode commit");
         commit
     }
 
     pub fn read_all_commits(&self) {
         let commit_dir = self.get_commits_dir();
-        let commit_files = fs::read_dir(commit_dir)
-            .expect("Failed to read commits directory!");
+        let commit_files = fs::read_dir(commit_dir).expect("Failed to read commits directory!");
         for commit_file in commit_files {
             let commit_dir_entry = commit_file.expect("Failed to read commit dir entry");
             let id = commit_dir_entry.file_name();
             let commit = self.read_commit(id.to_str().unwrap());
             println!("COMMIT: {}", commit.message())
         }
+    }
+
+    pub fn get_commits(&self) -> Vec<String> {
+        let commit_dir = self.get_commits_dir();
+        fs::read_dir(commit_dir)
+        .expect("Failed to read commits directory!")
+        .map(|entry| entry.expect("Failed to read entry.").file_name().into_string().unwrap())
+        .collect::<_>()
+        
     }
 }
