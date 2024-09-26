@@ -26,6 +26,7 @@ impl TitTree {
         let root = arena.new_node(Node {
             kind: tree.root_node().kind().to_string(),
             value: None,
+            role: None,
         });
 
         let significant_unnamed_kinds = significant_unnamed_kinds(tree.language());
@@ -37,6 +38,7 @@ impl TitTree {
             &root,
             &significant_unnamed_kinds,
             &insignificant_named_kinds,
+            None,
         );
         match result {
             Ok(_) => Ok(Self { arena, root }),
@@ -66,12 +68,10 @@ impl TitTree {
                 .get_mut();
 
             match node_change {
-                NodeChange::KindUpdate(_, new_node) => {
+                NodeChange::Update(_, new_node) => {
                     node.kind = new_node.kind.to_string();
                     node.value = new_node.value.clone();
-                }
-                NodeChange::ValueUpdate(_, new_node) => {
-                    node.value = new_node.value.clone();
+                    node.role = new_node.role.clone();
                 }
                 NodeChange::Addition(_, parent) => {
                     parent.append(node_change.node_id(), &mut self.arena);
@@ -104,14 +104,22 @@ fn construct_arena(
     arena_node: &NodeId,
     significant_unnamed_kinds: &Kinds,
     insignificant_named_kinds: &Kinds,
+    passed_field: Option<&str>,
 ) -> Result<(), Utf8Error> {
     let mut cursor = node.walk();
-    for child in node.children(&mut cursor) {
+    for (index, child) in node.children(&mut cursor).enumerate() {
+        let field = node.field_name_for_child(index as u32);
+        if field.is_some() && passed_field.is_some() {
+            panic!("Field should not be set twice");
+        }
+
+        let field = field.or(passed_field);
+
         if !child.is_named() && !significant_unnamed_kinds.contains(child.kind()) {
             continue;
         }
 
-        let new_arena_node =
+        let (new_arena_node, field) =
             if !child.is_named() || !insignificant_named_kinds.contains(child.kind()) {
                 let child_node = Node {
                     kind: child.kind().to_string(),
@@ -120,10 +128,11 @@ fn construct_arena(
                     } else {
                         None
                     },
+                    role: field.map(|f| f.to_string()),
                 };
-                &arena_node.append_value(child_node, arena)
+                (&arena_node.append_value(child_node, arena), None)
             } else {
-                arena_node
+                (arena_node, field)
             };
 
         construct_arena(
@@ -133,6 +142,7 @@ fn construct_arena(
             &new_arena_node,
             significant_unnamed_kinds,
             insignificant_named_kinds,
+            field,
         )?;
     }
 
@@ -159,15 +169,13 @@ fn detect_changes_in_nodes(
                 .expect("Node 2 should exist in arena 2")
                 .get();
 
-            if node1.kind != node2.kind {
-                differences.push(Change::KindUpdate(path.to_vec(), node2.clone()))
-            }
-
-            if n1.children(arena1).peekable().peek().is_none()
-                && n2.children(arena2).peekable().peek().is_none()
-                && node1.value != node2.value
+            if node1.kind != node2.kind
+                || node1.role != node2.role
+                || (n1.children(arena1).peekable().peek().is_none()
+                    && n2.children(arena2).peekable().peek().is_none()
+                    && node1.value != node2.value)
             {
-                differences.push(Change::ValueUpdate(path.to_vec(), node2.clone()));
+                differences.push(Change::Update(path.to_vec(), node2.clone()))
             }
 
             for (index, (child1, child2)) in
@@ -229,11 +237,8 @@ fn construct_changed_nodes<'a>(
 
     for change in applicable_changes {
         match &change {
-            Change::KindUpdate(_, new_node) => {
-                node_changes.push(NodeChange::KindUpdate(node, new_node));
-            }
-            Change::ValueUpdate(_, new_node) => {
-                node_changes.push(NodeChange::ValueUpdate(node, new_node));
+            Change::Update(_, new_node) => {
+                node_changes.push(NodeChange::Update(node, new_node));
             }
             Change::Deletion(_) => {
                 node_changes.push(NodeChange::Deletion(node));

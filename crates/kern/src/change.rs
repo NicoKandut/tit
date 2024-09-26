@@ -7,8 +7,7 @@ use sha3::Digest;
 
 #[derive(Encode, Decode, Debug, Clone, Hash)]
 pub enum Change {
-    KindUpdate(Path, Node),
-    ValueUpdate(Path, Node),
+    Update(Path, Node),
     Addition(Path, Node),
     Deletion(Path),
 }
@@ -16,8 +15,7 @@ pub enum Change {
 impl Change {
     pub fn path(&self) -> &Path {
         match self {
-            Change::KindUpdate(path, _) => path,
-            Change::ValueUpdate(path, _) => path,
+            Change::Update(path, _) => path,
             Change::Addition(path, _) => path,
             Change::Deletion(path) => path,
         }
