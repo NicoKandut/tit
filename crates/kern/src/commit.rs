@@ -7,22 +7,25 @@ use std::hash::Hash;
 
 #[derive(Encode, Decode, Debug, Clone, Hash)]
 pub struct Commit {
-    message: String,
-    changes: Vec<Change>,
-    timestamp: u128,
+    pub message: String,
+    pub changes: Vec<Change>,
+    pub timestamp: u128,
+    pub predecessor_id: Option<String>,
 }
 
 impl Commit {
-    pub fn new(message: String, changes: Vec<Change>, timestamp: u128) -> Self {
+    pub fn new(
+        message: String,
+        changes: Vec<Change>,
+        timestamp: u128,
+        predecessor_id: Option<String>,
+    ) -> Self {
         Self {
             message,
             changes,
             timestamp,
+            predecessor_id,
         }
-    }
-
-    pub fn message(&self) -> &str {
-        &self.message
     }
 
     pub fn encode(&self) -> Vec<u8> {

@@ -42,7 +42,7 @@ impl RepositoryStorage {
         }
 
         let repository = TitRepository::new(path.clone());
-        if repository.try_init().is_err() {
+        if repository.init().is_err() {
             return Err("Failed to initialize repository.");
         }
 

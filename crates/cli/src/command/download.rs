@@ -1,17 +1,20 @@
 use network::TitServerMessage;
 
-pub fn download(server: &str, project: &str) {
+pub fn download() {
+
+
     println!("Contacting server.");
     let working_dir = std::env::current_dir().expect("Failed to get current working directory!");
     let repository = kern::TitRepository::new(working_dir);
+    let state = repository.state();
 
-    let mut stream = std::net::TcpStream::connect(server).expect("Failed to connect to server");
+    let mut stream = std::net::TcpStream::connect(state.current_server).expect("Failed to connect to server");
 
     println!("Downloading index.");
     network::write_message(
         &mut stream,
         network::TitClientMessage::DownloadIndex {
-            project: project.to_string(),
+            project: state.project_name,
         },
     );
 

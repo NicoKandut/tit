@@ -1,8 +1,13 @@
 use network::{TitClientMessage, TitServerMessage};
 
-pub fn create_repo(server: &str, name: &str) {
+pub fn create_repo(name: &str) {
+    let working_dir = std::env::current_dir().expect("Failed to get current working directory!");
+    let repository = kern::TitRepository::new(working_dir);
+    let state = repository.state();
+
     println!("Contacting server.");
-    let mut stream = std::net::TcpStream::connect(server).expect("Failed to connect to server");
+    let mut stream =
+        std::net::TcpStream::connect(state.current_server).expect("Failed to connect to server");
 
     println!("Creating repository.");
     network::write_message(
@@ -23,17 +28,22 @@ pub fn create_repo(server: &str, name: &str) {
     println!("Done");
 }
 
-pub fn upload_all(server: &str, project: &str) {
-    println!("Syncing commits");
+pub fn upload_all() {
     let working_dir = std::env::current_dir().expect("Failed to get current working directory!");
     let repository = kern::TitRepository::new(working_dir);
-    let mut stream = std::net::TcpStream::connect(server).expect("Failed to connect to server");
-    let local_commits = repository.get_commits();
+    let state = repository.state();
 
+    println!("Contacting server {}.", state.current_server);
+    let mut stream =
+        std::net::TcpStream::connect(state.current_server).expect("Failed to connect to server");
+
+    println!("Syncing Changes...");
+    let local_commits = repository.commit_ids();
+    println!("Offering {} commits to server.", local_commits.len());
     network::write_message(
         &mut stream,
         network::TitClientMessage::OfferCommits {
-            project: project.to_string(),
+            project: state.project_name.clone(),
             commits: local_commits,
         },
     );
@@ -45,23 +55,24 @@ pub fn upload_all(server: &str, project: &str) {
     };
 
     println!(
-        "Server needs {} commits to be uploaded.",
+        "Server needs {} changes to be uploaded.",
         commits_to_upload.len()
     );
 
-    for commit_id in commits_to_upload.iter() {
-        let commit = repository.read_commit(&commit_id);
-        println!("  - Uploading commit: {}", commit_id);
-        network::write_message(
-            &mut stream,
-            TitClientMessage::UploadFile {
-                commit,
-                project: project.to_string(),
-            },
-        );
-    }
-
-    for _ in commits_to_upload.iter() {
+    println!("Uploading changes: {} changes", commits_to_upload.len());
+    commits_to_upload
+        .iter()
+        .map(|id| repository.read_commit(&id))
+        .for_each(|changes| {
+            network::write_message(
+                &mut stream,
+                TitClientMessage::UploadChanges {
+                    changes,
+                    project: state.project_name.clone(),
+                },
+            );
+        });
+    for _ in 0..commits_to_upload.len() {
         network::read_message::<TitServerMessage>(&mut stream);
     }
 

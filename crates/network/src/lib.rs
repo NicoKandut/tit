@@ -20,13 +20,17 @@ pub enum TitClientMessage {
     DownloadFile {
         commit: String
     },
-    UploadFile {
-        commit: kern::Commit,
+    UploadChanges {
+        changes: kern::Commit,
         project: String,
     },
     OfferCommits {
         project: String,
         commits: Vec<String>,
+    },
+    OfferBranches {
+        project: String,
+        branches: Vec<String>,
     },
 }
 

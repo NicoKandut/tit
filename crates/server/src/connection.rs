@@ -16,7 +16,7 @@ pub fn handle(mut stream: TcpStream, storage: RepositoryStorage) {
                 println!("Received DownloadIndex message");
                 let response = match storage.get_repository(&project) {
                     Some(repo) => {
-                        let commits = repo.get_commits();
+                        let commits = repo.commit_ids();
                         network::TitServerMessage::Index { commits }
                     }
                     None => TitServerMessage::Error,
@@ -25,7 +25,7 @@ pub fn handle(mut stream: TcpStream, storage: RepositoryStorage) {
             }
             network::TitClientMessage::DownloadFile { commit } => {
                 println!("Received DownloadFile message: {}", commit);
-                let commit_data = kern::Commit::new("commit1".to_string(), vec![], 0);
+                let commit_data = kern::Commit::new("commit1".to_string(), vec![], 0, None);
                 network::write_message(
                     &mut stream,
                     network::TitServerMessage::CommitFile {
@@ -33,11 +33,11 @@ pub fn handle(mut stream: TcpStream, storage: RepositoryStorage) {
                     },
                 );
             }
-            network::TitClientMessage::UploadFile { project, commit } => {
-                println!("Received UploadFile message: {}", commit);
+            network::TitClientMessage::UploadFile { project, changes } => {
+                println!("Received UploadFile message: {}", changes);
 
                 if let Some(repo) = storage.get_repository(&project) {
-                    repo.write_commit(&commit);
+                    repo.write_commit(&changes);
                 }
 
                 network::write_message(&mut stream, network::TitServerMessage::Hello);
@@ -55,7 +55,7 @@ pub fn handle(mut stream: TcpStream, storage: RepositoryStorage) {
             }
             network::TitClientMessage::OfferCommits { commits, project } => {
                 let missing_commits = match storage.get_repository(&project) {
-                    Some(repo) => set_difference(&commits, &repo.get_commits()),
+                    Some(repo) => set_difference(&commits, &repo.commit_ids()),
                     None => vec![],
                 };
                 network::write_message(

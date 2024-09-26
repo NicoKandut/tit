@@ -1,13 +1,6 @@
-use std::fs;
-
 use clap::{Parser, Subcommand};
 
-mod commit;
-mod commits;
-mod init;
-mod remote;
-mod download;
-mod upload;
+mod command;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -21,33 +14,21 @@ struct Cli {
 enum Subcommands {
     Init,
     Version,
-    Delete,
-    Commit {
-        #[arg(long, short = 'm')]
-        message: String,
-    },
+    Uninit,
     Commits,
-    Remote {
-        #[arg(long, short = 's')]
-        server: String,
-    },
-    Download {
-        #[arg(long, short = 's')]
-        server: String,
-        #[arg(long, short = 'p')]
-        project: String
+    Download,
+    Upload,
+    Add {
+        #[arg(index = 1, name = "resource", help = "Type of resource to add")]
+        resource: String,
+        #[arg(index = 2, name = "id", help = "Type of resource to add")]
+        id: String,
     },
     Create {
-        #[arg(long, short = 's')]
-        server: String,
-        #[arg(long, short = 'n')]
-        name: String
-    },
-    Upload {
-        #[arg(long, short = 's')]
-        server: String,
-        #[arg(long, short = 'p')]
-        project: String
+        #[arg(index = 1, name = "resource", help = "Type of resource to add")]
+        resource: String,
+        #[arg(index = 2, name = "id", help = "Type of resource to add")]
+        id: String,
     }
 }
 
@@ -58,19 +39,22 @@ fn main() {
     let subcommand = cli.command.unwrap_or(Subcommands::Version);
 
     match subcommand {
-        Subcommands::Init => init::run(),
-        Subcommands::Commit { message } => commit::run(message),
-        Subcommands::Commits => commits::run(),
         Subcommands::Version => println!("Version {VERSION}"),
-        Subcommands::Delete => {
-            let working_dir =
-                std::env::current_dir().expect("Failed to get current working directory!");
-            let tit_dir = working_dir.join(kern::TIT_DIR);
-            fs::remove_dir_all(tit_dir).expect("Failed to remove tit dir!");
+        Subcommands::Init => command::init(),
+        Subcommands::Uninit => command::uninit(),
+        Subcommands::Commits => command::commits(),
+        Subcommands::Upload => command::upload_all(),
+        Subcommands::Download => command::download(),
+        Subcommands::Create { resource, id } => match resource.as_str() {
+            "branch" => command::create_branch(&id),
+            "change" => command::commit(id),
+            _ => println!("Unknown resource type: {}", resource),
+            
+        },
+        Subcommands::Add { resource, id } => match resource.as_str() {
+            "server" => command::add_server(&id),
+            _ => println!("Unknown resource type: {}", resource),
+            
         }
-        Subcommands::Remote { server } => remote::add_remote(&server, "test"),
-        Subcommands::Download { server, project } => download::download(&server, &project),
-        Subcommands::Create { server, name } => upload::create_repo(&server, &name),
-        Subcommands::Upload { server, project } => upload::upload_all(&server, &project),
     }
 }
