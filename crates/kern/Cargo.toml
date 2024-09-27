@@ -3,6 +3,9 @@ name = "kern"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+crate-type=["rlib", "cdylib"]
+
 [dependencies]
 bincode = "2.0.0-rc.3"
 sha3 = "0.10.8"
