@@ -12,6 +12,7 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Subcommands {
+    Version,
     Init {
         #[arg(short, long, short = 'n', help = "Name of the repository")]
         name: Option<String>,
@@ -20,11 +21,8 @@ enum Subcommands {
         #[arg(short, long, short = 'b', help = "Name of first branch")]
         branch: Option<String>,
     },
-    Version,
     Uninit,
-    Commits,
-    Download,
-    Upload,
+    Sync,
     Add {
         #[arg(index = 1, name = "resource", help = "Type of resource to add")]
         resource: String,
@@ -36,7 +34,17 @@ enum Subcommands {
         resource: String,
         #[arg(index = 2, name = "id", help = "Type of resource to add")]
         id: String,
-    }
+    },
+    List {
+        #[arg(index = 1, name = "resource", help = "Type of resource to add")]
+        resource: String,
+    },
+    Switch {
+        #[arg(index = 1, name = "resource", help = "Type of resource to switch")]
+        resource: String,
+        #[arg(index = 2, name = "id", help = "Type of resource to add")]
+        id: String,
+    },
 }
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -49,9 +57,7 @@ fn main() {
         Subcommands::Version => println!("Version {VERSION}"),
         Subcommands::Init { name, server, branch} => command::init(name, server, branch),
         Subcommands::Uninit => command::uninit(),
-        Subcommands::Commits => command::commits(),
-        Subcommands::Upload => command::upload_all(),
-        Subcommands::Download => command::download(),
+        Subcommands::Sync => command::sync(),
         Subcommands::Create { resource, id } => match resource.as_str() {
             "branch" => command::create_branch(&id),
             "change" => command::commit(id),
@@ -62,6 +68,17 @@ fn main() {
             "server" => command::add_server(&id),
             _ => println!("Unknown resource type: {}", resource),
             
-        }
+        },
+        Subcommands::List { resource } => match resource.as_str() {
+            "commits" => command::list_commits(),
+            "servers" => command::list_servers(),
+            "branches" => command::list_branches(),
+            _ => println!("Unknown resource type: {}", resource),
+        },
+        Subcommands::Switch { resource, id } => match resource.as_str() {
+            "branch" => command::set_branch(&id),
+            "server" => command::set_server(&id),
+            _ => println!("Unknown resource type: {}", resource),
+        },
     }
 }

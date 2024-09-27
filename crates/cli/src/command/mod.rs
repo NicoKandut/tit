@@ -1,17 +1,15 @@
 mod commit;
 mod commits;
-mod download;
 mod init;
-mod remote;
+mod servers;
 mod uninit;
-mod upload;
-mod branch;
+mod branches;
+mod sync;
 
 pub use commit::*;
 pub use commits::*;
-pub use download::*;
 pub use init::*;
-pub use remote::*;
+pub use servers::*;
 pub use uninit::*;
-pub use upload::*;
-pub use branch::*;
+pub use branches::*;
+pub use sync::*;

@@ -30,7 +30,7 @@ impl RepositoryStorage {
         }
     }
 
-    pub fn create_repository(&self, name: &str) -> Result<(), &'static str> {
+    pub fn create_repository(&self, name: &str) -> Result<TitRepository, &'static str> {
         if self.repository_exists(name) {
             return Err("Repository already exists.");
         }
@@ -42,13 +42,14 @@ impl RepositoryStorage {
         }
 
         let repository = TitRepository::new(path.clone());
-        if repository.init().is_err() {
-            return Err("Failed to initialize repository.");
-        }
 
-        println!("Initialized repository");
+        repository
+            .init(name, "self", "none")
+            .expect("Failed to init repository.");
 
-        Ok(())
+        println!("Created repository at {:?}", path);
+
+        Ok(repository)
     }
 
     pub fn get_repository(&self, name: &str) -> Option<TitRepository> {
@@ -61,9 +62,7 @@ impl RepositoryStorage {
     }
 
     fn get_repo_path(&self, name: &str) -> PathBuf {
-        Path::new(&self.root_dir)
-        .join(REPOSITORIES_DIR)
-        .join(name)
+        Path::new(&self.root_dir).join(REPOSITORIES_DIR).join(name)
     }
 
     fn repository_exists(&self, name: &str) -> bool {

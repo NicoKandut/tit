@@ -1,9 +1,13 @@
 use bincode::{self, Decode, Encode};
 use kern;
 use std::{
+    collections::BTreeMap,
     io::{Read, Write},
     net::TcpStream,
 };
+
+mod client;
+pub use client::*;
 
 #[derive(Debug, Encode, Decode, Default)]
 pub enum TitClientMessage {
@@ -14,39 +18,37 @@ pub enum TitClientMessage {
     CreateRepository {
         name: String,
     },
-    DownloadIndex {
-        project: String,
+    UseRepository {
+        name: String,
     },
+    DownloadIndex,
     DownloadFile {
-        commit: String
+        id: String,
     },
     UploadChanges {
         changes: kern::Commit,
-        project: String,
     },
-    OfferCommits {
-        project: String,
+    OfferContent {
         commits: Vec<String>,
-    },
-    OfferBranches {
-        project: String,
-        branches: Vec<String>,
+        branches: BTreeMap<String, String>,
     },
 }
 
 #[derive(Debug, Encode, Decode, Default)]
 pub enum TitServerMessage {
     Hello,
+    Ok,
     #[default]
     Error,
     Index {
         commits: Vec<String>,
+        branches: BTreeMap<String, String>,
     },
     CommitFile {
         commit: kern::Commit,
     },
     RepositoryCreated,
-    RequestCommitUpload {
+    RequestUpload {
         commits: Vec<String>,
     },
 }

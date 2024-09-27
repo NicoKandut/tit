@@ -3,6 +3,7 @@ use std::{
     io::Error,
 };
 
+#[derive(Debug)]
 pub struct RepositoryError<'a>(pub &'a str, pub Option<Error>);
 
 impl<'a> Display for RepositoryError<'a> {
