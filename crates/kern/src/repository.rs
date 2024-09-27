@@ -4,12 +4,21 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
 use crate::error::RepositoryError;
-use crate::TIT_DIR;
+use crate::{util, TIT_DIR};
 use crate::{Commit, RepositoryState};
 
 #[derive(Debug, Clone)]
 pub struct TitRepository {
     root: PathBuf,
+}
+
+impl Default for TitRepository {
+    fn default() -> Self {
+        match util::find_tit_root() {
+            Some(root) => Self { root },
+            None => panic!("Directory is not part of a tit repository."),
+        }        
+    }
 }
 
 impl TitRepository {

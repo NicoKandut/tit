@@ -1,15 +1,14 @@
 use kern::TitRepository;
-use std::env::current_dir;
+use network::TitClient;
 
 pub fn sync() {
-    let working_dir = current_dir().expect("Failed to get current working directory!");
-    let repository = TitRepository::new(working_dir);
+    let repository = TitRepository::default();
     let state = repository.state();
     let server_name = state.current.server;
     let server_address = state.servers.get(&server_name).unwrap();
 
     println!("Contacting server {} ({}).", server_name, server_address);
-    let mut client = network::TitClient::new(server_address, &state.project.name);
+    let mut client = TitClient::new(server_address, &state.project.name);
 
     println!("Downloading index.");
     let (commits, branches) = match client.download_index() {

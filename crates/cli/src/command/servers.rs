@@ -1,6 +1,5 @@
 pub fn add_server(server: &str) {
-    let working_dir = std::env::current_dir().expect("Failed to get current working directory!");
-    let repository = kern::TitRepository::new(working_dir);
+    let repository = kern::TitRepository::default();
     let mut state = repository.state();
 
     println!(
@@ -15,8 +14,7 @@ pub fn add_server(server: &str) {
 }
 
 pub fn list_servers() {
-    let working_dir = std::env::current_dir().expect("Failed to get current working directory!");
-    let repository = kern::TitRepository::new(working_dir);
+    let repository = kern::TitRepository::default();
     let state = repository.state();
 
     state
@@ -26,8 +24,7 @@ pub fn list_servers() {
 }
 
 pub fn set_server(server: &str) {
-    let working_dir = std::env::current_dir().expect("Failed to get current working directory!");
-    let repository = kern::TitRepository::new(working_dir);
+    let repository = kern::TitRepository::default();
     let mut state = repository.state();
 
     if !state.servers.contains_key(server) {

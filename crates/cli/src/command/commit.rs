@@ -1,8 +1,7 @@
 use kern::{util::get_epoch_millis, Node};
 
 pub fn commit(message: String) {
-    let working_dir = std::env::current_dir().expect("Failed to get current working directory!");
-    let repository = kern::TitRepository::new(working_dir);
+    let repository = kern::TitRepository::default();
 
     // Test commit handling
     let commit = kern::Commit::new(

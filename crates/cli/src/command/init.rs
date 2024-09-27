@@ -1,5 +1,7 @@
+use std::env::current_dir;
+
 pub fn init(name: Option<String>, server: Option<String>, branch: Option<String>) {
-    let working_dir = std::env::current_dir().expect("Failed to get current working directory!");
+    let working_dir = current_dir().expect("Failed to get current working directory!");
 
     let name = name.unwrap_or(
         working_dir
@@ -20,4 +22,10 @@ pub fn init(name: Option<String>, server: Option<String>, branch: Option<String>
         Ok(_) => println!("Successful!"),
         Err(err) => println!("ERROR: {err}"),
     }
+}
+
+pub fn uninit() {
+    let working_dir = current_dir().expect("Failed to get current working directory!");
+    let repository = kern::TitRepository::new(working_dir);
+    repository.uninit();
 }

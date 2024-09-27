@@ -61,18 +61,17 @@ fn main() {
         Subcommands::Create { resource, id } => match resource.as_str() {
             "branch" => command::create_branch(&id),
             "change" => command::commit(id),
-            _ => println!("Unknown resource type: {}", resource),
-            
+            _ => println!("Unknown resource type: {}", resource),    
         },
         Subcommands::Add { resource, id } => match resource.as_str() {
             "server" => command::add_server(&id),
-            _ => println!("Unknown resource type: {}", resource),
-            
+            _ => println!("Unknown resource type: {}", resource), 
         },
         Subcommands::List { resource } => match resource.as_str() {
             "commits" => command::list_commits(),
             "servers" => command::list_servers(),
             "branches" => command::list_branches(),
+            "changes" => command::list_changes(),
             _ => println!("Unknown resource type: {}", resource),
         },
         Subcommands::Switch { resource, id } => match resource.as_str() {
