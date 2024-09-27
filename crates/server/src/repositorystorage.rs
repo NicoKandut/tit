@@ -1,7 +1,6 @@
 use std::{
-    fmt::format,
     fs,
-    path::{self, Path, PathBuf},
+    path::{Path, PathBuf},
 };
 
 use kern::TitRepository;
