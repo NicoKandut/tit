@@ -4,10 +4,9 @@ mod error;
 mod repository;
 mod path;
 mod node;
-mod byteutils;
-mod timeutils;
 mod repositorystate;
 mod branch;
+pub mod util;
 
 pub use commit::*;
 pub use change::*;
@@ -15,8 +14,6 @@ pub use error::*;
 pub use repository::*;
 pub use path::*;
 pub use node::*;
-pub use byteutils::*;
-pub use timeutils::*;
 pub use repositorystate::*;
 pub use branch::*;
 

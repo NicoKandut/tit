@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::{
+    collections::BTreeMap,
     fs,
     io::{Read, Write},
     path::Path,
@@ -7,11 +8,22 @@ use std::{
 use toml;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct Project {
+    pub name: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct Current {
+    pub branch: String,
+    pub server: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct RepositoryState {
-    pub project_name: String,
-    pub current_branch: String,
-    pub current_server: String,
-    pub current_commit: String,
+    pub project: Project,
+    pub current: Current,
+    pub branches: BTreeMap<String, String>,
+    pub servers: BTreeMap<String, String>,
 }
 
 impl RepositoryState {
@@ -19,13 +31,21 @@ impl RepositoryState {
         project_name: String,
         current_branch: String,
         current_server: String,
-        current_commit: String,
     ) -> Self {
+        let mut branches = BTreeMap::new();
+        branches.insert(current_branch.to_string(), "none".to_string());
+
+        let mut servers = BTreeMap::new();
+        servers.insert("default".to_string(), current_server.clone());
+
         Self {
-            project_name,
-            current_branch,
-            current_server,
-            current_commit,
+            project: Project { name: project_name },
+            current: Current {
+                branch: branches.first_key_value().unwrap().0.clone(),
+                server: servers.first_key_value().unwrap().0.clone(),
+            },
+            branches,
+            servers,
         }
     }
 
@@ -42,7 +62,7 @@ impl RepositoryState {
     pub fn save(path: &Path, state: RepositoryState) {
         let string = toml::to_string_pretty(&state).expect("Failed to serialize state");
 
-       fs::File::create(path)
+        fs::File::create(path)
             .expect("Failed to open repository state file!")
             .write_all(string.as_bytes())
             .expect("Failed to read file");

@@ -12,7 +12,14 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Subcommands {
-    Init,
+    Init {
+        #[arg(short, long, short = 'n', help = "Name of the repository")]
+        name: Option<String>,
+        #[arg(short, long, short = 's', help = "Remote server to connect to")]
+        server: Option<String>,
+        #[arg(short, long, short = 'b', help = "Name of first branch")]
+        branch: Option<String>,
+    },
     Version,
     Uninit,
     Commits,
@@ -40,7 +47,7 @@ fn main() {
 
     match subcommand {
         Subcommands::Version => println!("Version {VERSION}"),
-        Subcommands::Init => command::init(),
+        Subcommands::Init { name, server, branch} => command::init(name, server, branch),
         Subcommands::Uninit => command::uninit(),
         Subcommands::Commits => command::commits(),
         Subcommands::Upload => command::upload_all(),

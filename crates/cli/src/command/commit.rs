@@ -1,4 +1,4 @@
-use kern::Node;
+use kern::{util::get_epoch_millis, Node};
 
 pub fn commit(message: String) {
     let working_dir = std::env::current_dir().expect("Failed to get current working directory!");
@@ -33,11 +33,13 @@ pub fn commit(message: String) {
                 },
             ),
         ],
-        kern::get_epoch_millis(),
+        get_epoch_millis(),
         None,
     );
     repository.write_commit(&commit);
-    let id = commit.get_id();
-    let read = repository.read_commit(&id);
-    println!("Committing: {}", read);
+    println!("Committing: {}", commit);
+
+    let mut state = repository.state();
+    state.branches.insert(state.current.branch.clone(), commit.get_id());
+    repository.set_state(state);
 }

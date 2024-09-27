@@ -8,13 +8,13 @@ pub fn download() {
     let repository = kern::TitRepository::new(working_dir);
     let state = repository.state();
 
-    let mut stream = std::net::TcpStream::connect(state.current_server).expect("Failed to connect to server");
+    let mut stream = std::net::TcpStream::connect(state.current.server).expect("Failed to connect to server");
 
     println!("Downloading index.");
     network::write_message(
         &mut stream,
         network::TitClientMessage::DownloadIndex {
-            project: state.project_name,
+            project: state.project.name,
         },
     );
 

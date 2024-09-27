@@ -4,7 +4,7 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
 use crate::error::RepositoryError;
-use crate::{Branch, TIT_DIR};
+use crate::TIT_DIR;
 use crate::{Commit, RepositoryState};
 
 #[derive(Debug, Clone)]
@@ -17,7 +17,7 @@ impl TitRepository {
         Self { root }
     }
 
-    pub fn init(&self) -> Result<(), RepositoryError> {
+    pub fn init(&self, name: &str, server: &str, branch: &str) -> Result<(), RepositoryError> {
         let tit_exists = fs::read_dir(&self.root)
             .expect("Failed to read entries of cwd")
             .any(|entry| entry.expect("Failed to read entry").file_name() == crate::TIT_DIR);
@@ -27,24 +27,17 @@ impl TitRepository {
         }
 
         let root = Path::new(&self.root);
-        println!("Initializing project...");
+        println!("Initializing project {name}");
 
-        // create folders
+        // create directories
         fs::create_dir(root.join(TIT_DIR))
             .map_err(|e| RepositoryError("Failed to create .tit folder", Some(e)))?;
         fs::create_dir(root.join(self.get_commits_dir()))
             .map_err(|e| RepositoryError("Failed to create commits folder", Some(e)))?;
-        fs::create_dir(root.join(self.get_branch_dir()))
-            .map_err(|e| RepositoryError("Failed to create branch folder", Some(e)))?;
 
         // create state file
         let state_path = self.get_state_file();
-        let state = RepositoryState::new(
-            "project".to_string(),
-            "main".to_string(),
-            "none".to_string(),
-            "none".to_string(),
-        );
+        let state = RepositoryState::new(name.to_string(), branch.to_string(), server.to_string());
         RepositoryState::save(&state_path, state);
         println!("Done");
         Ok(())
@@ -63,14 +56,6 @@ impl TitRepository {
 
     fn get_commit_file(&self, commit_id: &str) -> PathBuf {
         self.get_commits_dir().join(commit_id)
-    }
-
-    fn get_branch_dir(&self) -> PathBuf {
-        self.root.join(crate::TIT_DIR).join(crate::BRANCH_DIR)
-    }
-
-    fn get_branch_file(&self, branch_id: &str) -> PathBuf {
-        self.get_branch_dir().join(branch_id)
     }
 
     fn get_state_file(&self) -> PathBuf {
@@ -107,13 +92,14 @@ impl TitRepository {
     }
 
     pub fn switch_branch(&self, branch_id: &str) {
-        let branch_path = self.get_branch_file(branch_id);
+        let mut state = self.state();
 
-        let exists = fs::metadata(&branch_path).is_ok();
-
-        if !exists {
+        if (state.branches.get(branch_id)).is_none() {
             panic!("Branch does not exist!");
         }
+
+        state.current.branch = branch_id.to_string();
+        self.set_state(state);
     }
 
     pub fn commit_ids(&self) -> Vec<String> {
@@ -143,25 +129,5 @@ impl TitRepository {
 
     pub fn set_state(&self, state: RepositoryState) {
         RepositoryState::save(&self.get_state_file(), state)
-    }
-
-    pub fn write_branch(&self, branch: &Branch) {
-        let file_path = self.get_branch_file(&branch.name);
-        fs::File::create(file_path.clone())
-            .expect(&format!(
-                "Failed to create branch file! Path: {file_path:?}"
-            ))
-            .write_all(branch.commit_id.as_bytes())
-            .expect("Failed to write branch!");
-    }
-
-    pub fn read_branch(&self, branch_name: &str) -> Branch {
-        let file_path = self.get_branch_file(branch_name);
-        let mut commit_id = String::new();
-        fs::File::open(file_path)
-            .expect("Failed to open branch file!")
-            .read_to_string(&mut commit_id)
-            .expect("Failed to read branch file!");
-        Branch::new(branch_name.to_string(), commit_id)
     }
 }

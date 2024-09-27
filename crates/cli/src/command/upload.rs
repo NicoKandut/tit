@@ -7,7 +7,7 @@ pub fn create_repo(name: &str) {
 
     println!("Contacting server.");
     let mut stream =
-        std::net::TcpStream::connect(state.current_server).expect("Failed to connect to server");
+        std::net::TcpStream::connect(state.current.server).expect("Failed to connect to server");
 
     println!("Creating repository.");
     network::write_message(
@@ -33,9 +33,9 @@ pub fn upload_all() {
     let repository = kern::TitRepository::new(working_dir);
     let state = repository.state();
 
-    println!("Contacting server {}.", state.current_server);
+    println!("Contacting server {}.", state.current.server);
     let mut stream =
-        std::net::TcpStream::connect(state.current_server).expect("Failed to connect to server");
+        std::net::TcpStream::connect(state.current.server).expect("Failed to connect to server");
 
     println!("Syncing Changes...");
     let local_commits = repository.commit_ids();
@@ -43,7 +43,7 @@ pub fn upload_all() {
     network::write_message(
         &mut stream,
         network::TitClientMessage::OfferCommits {
-            project: state.project_name.clone(),
+            project: state.project.name.clone(),
             commits: local_commits,
         },
     );
@@ -68,7 +68,7 @@ pub fn upload_all() {
                 &mut stream,
                 TitClientMessage::UploadChanges {
                     changes,
-                    project: state.project_name.clone(),
+                    project: state.project.name.clone(),
                 },
             );
         });

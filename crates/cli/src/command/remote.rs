@@ -3,9 +3,9 @@ pub fn add_server(server: &str) {
     let repository = kern::TitRepository::new(working_dir);
     let mut state = repository.state();
 
-    println!("Adding remote server: {} with project: {}", server, state.project_name.clone());
+    println!("Adding remote server: {} with project: {}", server, state.project.name.clone());
 
-    state.current_server = server.to_string();
+    state.current.server = server.to_string();
 
     repository.set_state(state);
 }

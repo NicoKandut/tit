@@ -1,4 +1,4 @@
-use crate::bytes_to_hex;
+use crate::util::bytes_to_hex;
 use crate::change::Change;
 use bincode::{Decode, Encode};
 use sha3::Digest;
