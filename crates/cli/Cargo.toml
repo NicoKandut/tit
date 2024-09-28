@@ -4,10 +4,10 @@ version = "0.1.17"
 edition = "2021"
 
 [dependencies]
-clap = { version="4.5.16", features = [ "derive" ] }
-kern = { path = "../kern"}
-network = { path = "../network" }
-bincode = "2.0.0-rc.3"
+clap.workspace = true
+kern.workspace = true
+network.workspace = true
+bincode.workspace = true
 
 [profile.release]
 opt-level = 3

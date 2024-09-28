@@ -1,3 +1,20 @@
 [workspace]
 members = ["crates/*"]
 resolver = "2"
+
+[workspace.dependencies]
+kern = { path = "./crates/kern"}
+network = { path = "./crates/network" }
+bincode = "2.0.0-rc.3"
+clap = { version="4.5.16", features = [ "derive" ] }
+indextree = "4.7.2"
+miniz_oxide = "0.8.0"
+regex = "1.10.6"
+serde = { version = "1.0.210", features = [ "derive" ] }
+sha3 = "0.10.8"
+toml = "0.8.19"
+tree-sitter = "0.23.0"
+tree-sitter-c = "0.23.0"
+
+[build-dependencies]
+cc = "*"

@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-clap = { version="4.5.16", features = [ "derive" ] }
-bincode = "2.0.0-rc.3"
-network = { path = "../network" }
-kern = { path = "../kern" }
+clap.workspace = true
+bincode.workspace = true
+network.workspace = true
+kern.workspace = true
