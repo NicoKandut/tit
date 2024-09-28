@@ -1,4 +1,5 @@
 use crate::error::RepositoryError;
+use crate::terminal::CheckList;
 use crate::util::{from_compressed_bytes, to_compressed_bytes, FileRead, FileWrite};
 use crate::{util, TitTree, TIT_DIR};
 use crate::{Commit, RepositoryState};
@@ -36,23 +37,29 @@ impl TitRepository {
         }
 
         let root = Path::new(&self.root);
-        println!("Initializing project {name}");
+        let mut checklist = CheckList::new(&format!("Initializing project {name}"));
 
         // create directories
+        checklist.start_step("Creating directories".to_string());
         fs::create_dir(root.join(TIT_DIR))
             .map_err(|e| RepositoryError("Failed to create .tit folder", Some(e)))?;
         fs::create_dir(root.join(self.get_commits_dir()))
             .map_err(|e| RepositoryError("Failed to create commits folder", Some(e)))?;
+        checklist.finish_step();
 
         // create state file
+        checklist.start_step("Creating state file".to_string());
         let state_path = self.get_state_file();
         let state = RepositoryState::new(name.to_string(), branch.to_string(), server.to_string());
         state.write_to(&state_path);
+        checklist.finish_step();
 
         // create tree file
+        checklist.start_step("Creating tree file".to_string());
         let tree_path = self.get_tree_file();
         let tree = TitTree::default();
         tree.write_to(tree_path);
+        checklist.finish_step();
 
         println!("Done");
         Ok(())

@@ -6,6 +6,7 @@ mod path;
 mod node;
 mod repositorystate;
 mod branch;
+pub mod terminal;
 pub mod util;
 pub mod tree;
 
