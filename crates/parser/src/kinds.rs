@@ -1,6 +1,8 @@
-use crate::c;
 use std::collections::{HashMap, HashSet};
-use tree_sitter::{Language, LanguageRef};
+
+use tree_sitter::Language;
+
+use crate::c;
 
 pub type Kinds = HashSet<String>;
 
@@ -14,7 +16,7 @@ macro_rules! string_set {
     () => {};
 }
 
-pub fn significant_unnamed_kinds(lang: LanguageRef) -> Kinds {
+pub fn significant_unnamed_kinds(lang: &Language) -> Kinds {
     let language_sets: HashMap<Language, Kinds> = HashMap::from_iter([(
         c!(),
         string_set!(
@@ -55,10 +57,10 @@ pub fn significant_unnamed_kinds(lang: LanguageRef) -> Kinds {
         ),
     )]);
 
-    language_sets.get(&*lang).unwrap().clone()
+    language_sets.get(lang).unwrap().clone()
 }
 
-pub fn insignificant_named_kinds(lang: LanguageRef) -> Kinds {
+pub fn insignificant_named_kinds(lang: &Language) -> Kinds {
     let language_sets: HashMap<Language, Kinds> = HashMap::from_iter([(
         c!(),
         string_set!(
@@ -67,5 +69,5 @@ pub fn insignificant_named_kinds(lang: LanguageRef) -> Kinds {
         ),
     )]);
 
-    language_sets.get(&*lang).unwrap().clone()
+    language_sets.get(lang).unwrap().clone()
 }
