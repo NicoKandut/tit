@@ -5,9 +5,12 @@ resolver = "2"
 [workspace.dependencies]
 kern = { path = "./crates/kern"}
 network = { path = "./crates/network" }
+parser = { path = "./crates/parser" }
+templater = { path = "./crates/templater" }
 bincode ={ version = "2.0.0-rc.3", features = [ "serde" ]}
 cc = "*"
 clap = { version="4.5.16", features = [ "derive" ] }
+lazy_static = "1.5.0"
 indextree = { version = "4.7.2", features = [ "deser" ] }
 miniz_oxide = "0.8.0"
 regex = "1.10.6"

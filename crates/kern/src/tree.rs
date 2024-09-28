@@ -1,4 +1,3 @@
-use std::io::{Read, Write};
 use std::{fmt, fs};
 
 use indextree::{Arena, NodeId};
@@ -10,6 +9,7 @@ use crate::util::{
     FileRead, FileWrite,
 };
 use crate::{Change, Node, Path};
+use crate::{Change, Node, Path, TitError};
 
 mod node_change;
 
@@ -92,6 +92,28 @@ impl TitTree {
                 }
             }
         }
+    }
+
+    pub fn root(&self) -> Result<&indextree::Node<Node>, TitError<'static>> {
+        self.arena
+            .get(self.root)
+            .ok_or(TitError("Root node not found", None))
+    }
+
+    pub fn children(
+        &self,
+        node: &indextree::Node<Node>,
+    ) -> Result<impl Iterator<Item = &indextree::Node<Node>>, TitError<'static>> {
+        let node_id = self
+            .arena
+            .get_node_id(node)
+            .ok_or(TitError("Node not found", None))?;
+
+        let children = node_id
+            .children(&self.arena)
+            .map(|id| self.arena.get(id).expect("Child should exist"));
+
+        Ok(children)
     }
 }
 

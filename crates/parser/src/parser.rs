@@ -1,8 +1,7 @@
 use std::str::Utf8Error;
 use indextree::{Arena, NodeId};
 use tree_sitter::{Language, Parser};
-use kern::{Node, TitTree};
-use crate::errors::{LanguageError, ParsingError};
+use kern::{Node, TitError, TitTree};
 use crate::kinds::{insignificant_named_kinds, Kinds, significant_unnamed_kinds};
 
 pub struct TitParser {
@@ -10,15 +9,15 @@ pub struct TitParser {
 }
 
 impl TitParser {
-    pub fn new(language: Language) -> Result<Self, LanguageError> {
+    pub fn new(language: Language) -> Result<Self, TitError<'static>> {
         let mut parser = Parser::new();
         match parser.set_language(&language) {
             Ok(_) => Ok(Self { parser }),
-            Err(e) => Err(e),
+            Err(_) => Err(TitError("Failed to set language", None)),
         }
     }
     
-    pub fn parse(&mut self, source: impl AsRef<[u8]>) -> Result<TitTree, ParsingError> {
+    pub fn parse(&mut self, source: impl AsRef<[u8]>) -> Result<TitTree, TitError<'static>> {
         let source_ref = source.as_ref();
         
         match self.parser.parse(source_ref, None) {
@@ -39,11 +38,11 @@ impl TitParser {
                     &significant_unnamed_kinds(&self.parser.language().expect("Language should be set set")),
                     &insignificant_named_kinds(&self.parser.language().expect("Language should be set set")),
                     None,
-                ).map_err(ParsingError::Utf8Error)?;
+                ).map_err(|_| TitError("Failed to construct arena", None))?;
                 
                 Ok(TitTree::new(arena, root))
             },
-            None => Err(ParsingError::TreeSitterError),
+            None => Err(TitError("Failed to parse source", None)),
         }
     }
 }

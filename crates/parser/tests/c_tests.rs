@@ -1,6 +1,5 @@
 use parser::c;
 use parser::parser::TitParser;
-use parser::templater::TitTemplater;
 
 #[test]
 fn test_apply_01() {

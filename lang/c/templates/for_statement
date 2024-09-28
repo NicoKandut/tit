@@ -1,1 +1,1 @@
-for($initializer[!declaration:;]$$condition$;$update$){$body$}
+for($initializer[suffix !declaration=;]$$condition$;$update$){$body$}

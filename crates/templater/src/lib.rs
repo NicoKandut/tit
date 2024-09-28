@@ -1,4 +1,5 @@
-mod templater;
+pub mod templater;
 mod template;
 mod palceholder;
-mod errors;
+
+pub use templater::TitTemplater;

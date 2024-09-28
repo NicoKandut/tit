@@ -4,9 +4,9 @@ use std::{
 };
 
 #[derive(Debug)]
-pub struct RepositoryError<'a>(pub &'a str, pub Option<Error>);
+pub struct TitError<'a>(pub &'a str, pub Option<Error>);
 
-impl<'a> Display for RepositoryError<'a> {
+impl<'a> Display for TitError<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!("TitError: {}. Cause: {:?}", self.0, self.1))
     }
