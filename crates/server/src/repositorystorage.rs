@@ -5,27 +5,19 @@ use std::{
 
 use kern::TitRepository;
 
-const REPOSITORIES_DIR: &str = "repos";
-
 #[derive(Clone, Debug)]
 pub struct RepositoryStorage {
-    root_dir: String,
+    dir: PathBuf,
 }
 
 impl RepositoryStorage {
-    pub fn new(root_dir: &str) -> Self {
-        Self {
-            root_dir: root_dir.to_string(),
-        }
+    pub fn new(dir: PathBuf) -> Self {
+        Self { dir }
     }
 
     pub fn init(&self) {
-        let exists = fs::read_dir(&self.root_dir)
-            .expect("Failed to read entries of cwd")
-            .any(|entry| entry.expect("Failed to read entry").file_name() == REPOSITORIES_DIR);
-
-        if !exists {
-            fs::create_dir(REPOSITORIES_DIR).expect("Failed to create repositories directory.");
+        if !self.dir.exists() {
+            fs::create_dir(&self.dir).expect("Failed to create working directory.");
         }
     }
 
@@ -61,13 +53,10 @@ impl RepositoryStorage {
     }
 
     fn get_repo_path(&self, name: &str) -> PathBuf {
-        Path::new(&self.root_dir).join(REPOSITORIES_DIR).join(name)
+        Path::new(&self.dir).join(name)
     }
 
     fn repository_exists(&self, name: &str) -> bool {
-        let path = Path::new(&self.root_dir).join(REPOSITORIES_DIR);
-        fs::read_dir(path.clone())
-            .expect("Failed to read entries of cwd")
-            .any(|entry| entry.expect("Failed to read entry").file_name() == name)
+        self.get_repo_path(name).exists()
     }
 }
