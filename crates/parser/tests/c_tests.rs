@@ -1,8 +1,9 @@
 use parser::c;
 use parser::parser::TitParser;
+use parser::templater::TitTemplater;
 
 #[test]
-fn test_01() {
+fn test_apply_01() {
     let src1 = r#"
         int main() {
             return 0;
@@ -26,7 +27,7 @@ fn test_01() {
 }
 
 #[test]
-fn test_02() {
+fn test_apply_02() {
     let src1 = r#"
         int main() {
         }
@@ -49,7 +50,7 @@ fn test_02() {
 }
 
 #[test]
-fn test_03() {
+fn test_apply_03() {
     let src1 = r#"
         int main() {
             return 0;
@@ -72,7 +73,7 @@ fn test_03() {
 }
 
 #[test]
-fn test_04() {
+fn test_apply_04() {
     let src1 = r#"
         int main() {
             int x = 0;
@@ -104,7 +105,7 @@ fn test_04() {
 }
 
 #[test]
-fn test_05() {
+fn test_apply_05() {
     let src1 = r#"
         int main() {
             int x = 0;
@@ -137,4 +138,74 @@ fn test_05() {
     assert_eq!(changes.len(), 0);
     
     println!("{:?}", tree1);
+}
+
+#[test]
+fn test_render_01() {
+    let src = r#"
+        int main() {
+            return 0;
+        }
+    "#;
+
+    let mut parser = TitParser::new(c!()).unwrap();
+    let tree = parser.parse(src).unwrap();
+
+    let mut templater = TitTemplater::new(std::path::Path::new("/home/phaulson/Desktop/tit/lang/c/templates"));
+    let rendered = templater.render_tree(&tree).unwrap();
+    
+    let expected = "int main(){return 0;}";
+    assert_eq!(rendered, expected);
+}
+
+#[test]
+fn test_render_02() {
+    let src = r#"
+        int main() {
+            int x = 0;
+            while (x < 10) {
+                printf("x = %d\n", x);
+            }
+        }
+    "#;
+
+    let mut parser = TitParser::new(c!()).unwrap();
+    let tree = parser.parse(src).unwrap();
+    
+    println!("{:?}", tree);
+
+    let mut templater = TitTemplater::new(std::path::Path::new("/home/phaulson/Desktop/tit/lang/c/templates"));
+    let rendered = templater.render_tree(&tree).unwrap();
+    
+    let expected = r#"int main(){int x=0;while(x<10){printf("x = %d\n",x);}}"#;
+    assert_eq!(rendered, expected);
+}
+
+#[test]
+fn test_render_03() {
+    let src = r#"
+        int main() {
+            for (int x = 0; x < 10; x++) {
+            }
+            for (x = 0; x < 10; x++) {
+            }
+            for (; x < 10; x++) {
+            }
+            for (;; x++) {
+            }
+            for (;;) {
+            }
+        }
+    "#;
+
+    let mut parser = TitParser::new(c!()).unwrap();
+    let tree = parser.parse(src).unwrap();
+
+    let mut templater = TitTemplater::new(std::path::Path::new("/home/phaulson/Desktop/tit/lang/c/templates"));
+    let rendered = templater.render_tree(&tree).unwrap();
+    
+    println!("{:?}", tree);
+
+    let expected = r#"int main(){for(int x=0;x<10;x++){}for(;x<10;x++){}for(;;x++){}for(;;){}}"#;
+    assert_eq!(rendered, expected);
 }

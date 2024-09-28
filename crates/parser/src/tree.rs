@@ -11,7 +11,7 @@ use kern::Change;
 use kern::Node;
 use kern::Path;
 
-use crate::errors::ParsingError;
+use crate::errors::{ParsingError, TreeIteratingError};
 use crate::tree::kinds::{insignificant_named_kinds, significant_unnamed_kinds, Kinds};
 use crate::tree::node_change::NodeChange;
 
@@ -81,6 +81,15 @@ impl TitTree {
                 }
             }
         }
+    }
+    
+    pub fn root(&self) -> Result<&indextree::Node<Node>, TreeIteratingError> {
+        self.arena.get(self.root).ok_or(TreeIteratingError("Root node does not exist"))
+    }
+    
+    pub fn children(&self, node: &indextree::Node<Node>) -> Result<Vec<&indextree::Node<Node>>, TreeIteratingError> {
+        let node_id = self.arena.get_node_id(node).ok_or(TreeIteratingError("Node does not exist"))?;
+        Ok(node_id.children(&self.arena).map(|child| self.arena.get(child).expect("Child should exist")).collect())
     }
 }
 
