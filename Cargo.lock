@@ -246,6 +246,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0d6f1b8dbc8f1e5a0f45e05b9293c42cbab79086baeb3e914d3936f8149edc4f"
 dependencies = [
  "indextree-macros",
+ "serde",
 ]
 
 [[package]]

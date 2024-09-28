@@ -1,6 +1,7 @@
 use bincode::{Decode, Encode};
+use serde::{Deserialize, Serialize};
 
-#[derive(Encode, Decode, Debug, Clone, Hash)]
+#[derive(Serialize, Deserialize, Encode, Decode, Debug, Clone, Hash)]
 pub struct Node {
     pub kind: String,
     pub value: Option<String>,

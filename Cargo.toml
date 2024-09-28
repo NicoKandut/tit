@@ -5,10 +5,10 @@ resolver = "2"
 [workspace.dependencies]
 kern = { path = "./crates/kern"}
 network = { path = "./crates/network" }
-bincode = "2.0.0-rc.3"
+bincode ={ version = "2.0.0-rc.3", features = [ "serde" ]}
 cc = "*"
 clap = { version="4.5.16", features = [ "derive" ] }
-indextree = "4.7.2"
+indextree = { version = "4.7.2", features = [ "deser" ] }
 miniz_oxide = "0.8.0"
 regex = "1.10.6"
 serde = { version = "1.0.210", features = [ "derive" ] }

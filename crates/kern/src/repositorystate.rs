@@ -7,6 +7,8 @@ use std::{
 };
 use toml;
 
+use crate::util::{FileRead, FileWrite};
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Project {
     pub name: String,
@@ -27,11 +29,7 @@ pub struct RepositoryState {
 }
 
 impl RepositoryState {
-    pub fn new(
-        project_name: String,
-        current_branch: String,
-        current_server: String,
-    ) -> Self {
+    pub fn new(project_name: String, current_branch: String, current_server: String) -> Self {
         let mut branches = BTreeMap::new();
         branches.insert(current_branch.to_string(), "none".to_string());
 
@@ -48,20 +46,22 @@ impl RepositoryState {
             servers,
         }
     }
+}
 
-    pub fn load(path: &Path) -> Self {
+impl<P: AsRef<Path>> FileRead<P> for RepositoryState {
+    fn read_from(path: P) -> Self {
         let mut file_content = String::new();
         fs::File::open(path)
             .expect("Failed to open repository state file!")
             .read_to_string(&mut file_content)
             .expect("Failed to read file");
-
         toml::from_str(&file_content).expect("Failed to parse state file")
     }
+}
 
-    pub fn save(path: &Path, state: RepositoryState) {
-        let string = toml::to_string_pretty(&state).expect("Failed to serialize state");
-
+impl<P: AsRef<Path>> FileWrite<P> for RepositoryState {
+    fn write_to(&self, path: P) {
+        let string = toml::to_string_pretty(self).expect("Failed to serialize state");
         fs::File::create(path)
             .expect("Failed to open repository state file!")
             .write_all(string.as_bytes())

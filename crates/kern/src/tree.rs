@@ -1,15 +1,55 @@
-use std::fmt;
+use std::io::{Read, Write};
+use std::{fmt, fs};
 
 use indextree::{Arena, NodeId};
+use serde::{Deserialize, Serialize};
 
-use crate::{Change, Node, Path};
 use crate::tree::node_change::NodeChange;
+use crate::util::{
+    from_serialized_bytes, slice_to_byte_slice, struct_to_byte_slice, to_serialized_bytes,
+    FileRead, FileWrite,
+};
+use crate::{Change, Node, Path};
 
 mod node_change;
 
+#[derive(Serialize, Deserialize)]
 pub struct TitTree {
     arena: Arena<Node>,
     root: NodeId,
+}
+
+impl Default for TitTree {
+    fn default() -> Self {
+        let mut arena = Arena::default();
+        let root = arena.new_node(Node {
+            kind: "".to_string(),
+            value: None,
+            role: None,
+        });
+        Self { arena, root }
+    }
+}
+
+impl<P: AsRef<std::path::Path>> FileRead<P> for TitTree {
+    fn read_from(path: P) -> Self {
+        let mut compressed_bytes = vec![];
+        fs::File::open(path)
+            .expect("Failed to open commit file!")
+            .read_to_end(&mut compressed_bytes)
+            .expect("Failed to read commit file!");
+        from_serialized_bytes(&compressed_bytes)
+    }
+}
+
+impl<P: AsRef<std::path::Path>> FileWrite<P> for TitTree {
+    fn write_to(&self, path: P) {
+        let compressed_bytes = to_serialized_bytes(self);
+        fs::File::create(path)
+            .expect("Failed to create file!")
+            .write(&compressed_bytes)
+            .expect("Failed to write commit!");
+    }
 }
 
 impl TitTree {
