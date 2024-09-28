@@ -1,15 +1,15 @@
 use std::{fmt, fs};
+use std::io::{Read, Write};
 
 use indextree::{Arena, NodeId};
 use serde::{Deserialize, Serialize};
 
+use crate::{Change, Node, Path, TitError};
 use crate::tree::node_change::NodeChange;
 use crate::util::{
-    from_serialized_bytes, slice_to_byte_slice, struct_to_byte_slice, to_serialized_bytes,
     FileRead, FileWrite,
+    from_serialized_bytes, to_serialized_bytes,
 };
-use crate::{Change, Node, Path};
-use crate::{Change, Node, Path, TitError};
 
 mod node_change;
 

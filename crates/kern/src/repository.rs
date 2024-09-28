@@ -1,4 +1,4 @@
-use crate::error::RepositoryError;
+use crate::error::TitError;
 use crate::terminal::CheckList;
 use crate::util::{from_compressed_bytes, to_compressed_bytes, FileRead, FileWrite};
 use crate::{util, TitTree, TIT_DIR};
@@ -27,13 +27,13 @@ impl TitRepository {
         Self { root }
     }
 
-    pub fn init(&self, name: &str, server: &str, branch: &str) -> Result<(), RepositoryError> {
+    pub fn init(&self, name: &str, server: &str, branch: &str) -> Result<(), TitError> {
         let tit_exists = fs::read_dir(&self.root)
             .expect("Failed to read entries of cwd")
             .any(|entry| entry.expect("Failed to read entry").file_name() == crate::TIT_DIR);
 
         if tit_exists {
-            return Err(RepositoryError("Repository already initialized!", None));
+            return Err(TitError("Repository already initialized!", None));
         }
 
         let root = Path::new(&self.root);
@@ -42,9 +42,9 @@ impl TitRepository {
         // create directories
         checklist.start_step("Creating directories".to_string());
         fs::create_dir(root.join(TIT_DIR))
-            .map_err(|e| RepositoryError("Failed to create .tit folder", Some(e)))?;
+            .map_err(|e| TitError("Failed to create .tit folder", Some(e)))?;
         fs::create_dir(root.join(self.get_commits_dir()))
-            .map_err(|e| RepositoryError("Failed to create commits folder", Some(e)))?;
+            .map_err(|e| TitError("Failed to create commits folder", Some(e)))?;
         checklist.finish_step();
 
         // create state file
