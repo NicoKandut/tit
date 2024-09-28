@@ -1,19 +1,11 @@
-mod kinds;
-mod node_change;
-
 use std::fmt;
-use std::str::Utf8Error;
 
 use indextree::{Arena, NodeId};
-use tree_sitter::Tree;
 
-use kern::Change;
-use kern::Node;
-use kern::Path;
-
-use crate::errors::{ParsingError, TreeIteratingError};
-use crate::tree::kinds::{insignificant_named_kinds, significant_unnamed_kinds, Kinds};
+use crate::{Change, Node, Path};
 use crate::tree::node_change::NodeChange;
+
+mod node_change;
 
 pub struct TitTree {
     arena: Arena<Node>,
@@ -21,29 +13,8 @@ pub struct TitTree {
 }
 
 impl TitTree {
-    pub fn new(tree: Tree, source: &[u8]) -> Result<Self, ParsingError> {
-        let mut arena = Arena::new();
-        let root = arena.new_node(Node {
-            kind: tree.root_node().kind().to_string(),
-            value: None,
-            role: None,
-        });
-
-        let significant_unnamed_kinds = significant_unnamed_kinds(tree.language());
-        let insignificant_named_kinds = insignificant_named_kinds(tree.language());
-        let result = construct_arena(
-            &tree.root_node(),
-            source,
-            &mut arena,
-            &root,
-            &significant_unnamed_kinds,
-            &insignificant_named_kinds,
-            None,
-        );
-        match result {
-            Ok(_) => Ok(Self { arena, root }),
-            Err(e) => Err(ParsingError::Utf8Error(e)),
-        }
+    pub fn new(arena: Arena<Node>, root: NodeId) -> Self {
+        TitTree { arena, root }
     }
 
     pub fn detect_changes(&self, other: &TitTree) -> Vec<Change> {
@@ -82,15 +53,6 @@ impl TitTree {
             }
         }
     }
-    
-    pub fn root(&self) -> Result<&indextree::Node<Node>, TreeIteratingError> {
-        self.arena.get(self.root).ok_or(TreeIteratingError("Root node does not exist"))
-    }
-    
-    pub fn children(&self, node: &indextree::Node<Node>) -> Result<Vec<&indextree::Node<Node>>, TreeIteratingError> {
-        let node_id = self.arena.get_node_id(node).ok_or(TreeIteratingError("Node does not exist"))?;
-        Ok(node_id.children(&self.arena).map(|child| self.arena.get(child).expect("Child should exist")).collect())
-    }
 }
 
 impl fmt::Debug for TitTree {
@@ -104,58 +66,6 @@ impl PartialEq for TitTree {
     fn eq(&self, other: &Self) -> bool {
         nodes_equal(&self.root, &other.root, &self.arena, &other.arena)
     }
-}
-
-fn construct_arena(
-    node: &tree_sitter::Node,
-    source: &[u8],
-    arena: &mut Arena<Node>,
-    arena_node: &NodeId,
-    significant_unnamed_kinds: &Kinds,
-    insignificant_named_kinds: &Kinds,
-    passed_field: Option<&str>,
-) -> Result<(), Utf8Error> {
-    let mut cursor = node.walk();
-    for (index, child) in node.children(&mut cursor).enumerate() {
-        let field = node.field_name_for_child(index as u32);
-        if field.is_some() && passed_field.is_some() {
-            panic!("Field should not be set twice");
-        }
-
-        let field = field.or(passed_field);
-
-        if !child.is_named() && !significant_unnamed_kinds.contains(child.kind()) {
-            continue;
-        }
-
-        let (new_arena_node, field) =
-            if !child.is_named() || !insignificant_named_kinds.contains(child.kind()) {
-                let child_node = Node {
-                    kind: child.kind().to_string(),
-                    value: if child.child_count() == 0 {
-                        Some(child.utf8_text(source)?.to_string())
-                    } else {
-                        None
-                    },
-                    role: field.map(|f| f.to_string()),
-                };
-                (&arena_node.append_value(child_node, arena), None)
-            } else {
-                (arena_node, field)
-            };
-
-        construct_arena(
-            &child,
-            source,
-            arena,
-            &new_arena_node,
-            significant_unnamed_kinds,
-            insignificant_named_kinds,
-            field,
-        )?;
-    }
-
-    Ok(())
 }
 
 fn detect_changes_in_nodes(
