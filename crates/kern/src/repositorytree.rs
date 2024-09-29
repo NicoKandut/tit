@@ -77,10 +77,7 @@ impl RepositoryTree {
                 .iter()
                 .position(|(r_path, r_content)| *r_path == l_path && *r_content == l_content)
             {
-                // println!(
-                //     "Matching: {:?}, {:?} vs {:?}",
-                //     l_path, l_content, right[matching].1
-                // );
+                // no change
                 right.remove(matching);
             } else if let Some(matching) = right
                 .iter()
@@ -112,6 +109,7 @@ impl RepositoryTree {
             }
         }
 
+        // anytihng left over in right is an addition
         for (r_path, _) in right {
             difference.push(Change::Addition(
                 vec![],
