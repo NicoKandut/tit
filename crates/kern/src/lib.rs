@@ -9,6 +9,7 @@ mod branch;
 pub mod terminal;
 pub mod util;
 pub mod tree;
+mod repositorytree;
 
 pub use commit::*;
 pub use change::*;
@@ -19,6 +20,7 @@ pub use node::*;
 pub use repositorystate::*;
 pub use branch::*;
 pub use tree::*;
+pub use repositorytree::*;
 
 pub const TIT_DIR: &str = ".tit";
 pub const COMMIT_DIR: &str = "commits";

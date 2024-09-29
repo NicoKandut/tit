@@ -77,7 +77,7 @@ pub fn handle(mut stream: TcpStream, storage: RepositoryStorage) {
     }
 }
 
-pub fn set_difference(a: &[String], b: &[String]) -> Vec<String> {
+pub fn set_difference<T: PartialEq>(a: &[T], b: &[T]) -> Vec<T> {
     let mut difference = vec![];
 
     for item in a {

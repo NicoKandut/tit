@@ -1,7 +1,7 @@
 use crate::error::TitError;
 use crate::terminal::CheckList;
 use crate::util::{from_compressed_bytes, to_compressed_bytes, FileRead, FileWrite};
-use crate::{util, TitTree, TIT_DIR};
+use crate::{util, RepositoryTree, TitTree, TIT_DIR};
 use crate::{Commit, RepositoryState};
 use std::collections::HashMap;
 use std::fs;
@@ -43,21 +43,21 @@ impl TitRepository {
         checklist.start_step("Creating directories".to_string());
         fs::create_dir(root.join(TIT_DIR))
             .map_err(|e| TitError("Failed to create .tit folder", Some(e)))?;
-        fs::create_dir(root.join(self.get_commits_dir()))
+        fs::create_dir(root.join(self.commits_dir()))
             .map_err(|e| TitError("Failed to create commits folder", Some(e)))?;
         checklist.finish_step();
 
         // create state file
         checklist.start_step("Creating state file".to_string());
-        let state_path = self.get_state_file();
+        let state_path = self.state_file();
         let state = RepositoryState::new(name.to_string(), branch.to_string(), server.to_string());
         state.write_to(&state_path);
         checklist.finish_step();
 
         // create tree file
         checklist.start_step("Creating tree file".to_string());
-        let tree_path = self.get_tree_file();
-        let tree = TitTree::default();
+        let tree_path = self.tree_file();
+        let tree = RepositoryTree::default();
         tree.write_to(tree_path);
         checklist.finish_step();
 
@@ -72,26 +72,26 @@ impl TitRepository {
 
     //<editor-fold> File & Directory Paths
 
-    fn get_commits_dir(&self) -> PathBuf {
+    fn commits_dir(&self) -> PathBuf {
         self.root.join(crate::TIT_DIR).join(crate::COMMIT_DIR)
     }
 
-    fn get_commit_file(&self, commit_id: &str) -> PathBuf {
-        self.get_commits_dir().join(commit_id)
+    fn commit_file(&self, commit_id: &str) -> PathBuf {
+        self.commits_dir().join(commit_id)
     }
 
-    fn get_state_file(&self) -> PathBuf {
+    fn state_file(&self) -> PathBuf {
         self.root.join(crate::TIT_DIR).join("state.toml")
     }
 
-    fn get_tree_file(&self) -> PathBuf {
+    fn tree_file(&self) -> PathBuf {
         self.root.join(crate::TIT_DIR).join("tree.bin")
     }
 
     //</editor-fold>
 
     pub fn write_commit(&self, commit: &Commit) {
-        let commit_path = self.get_commit_file(&commit.get_id());
+        let commit_path = self.commit_file(&commit.get_id());
         let compressed_bytes = to_compressed_bytes(commit);
         fs::File::create(commit_path.clone())
             .expect(&format!(
@@ -102,7 +102,7 @@ impl TitRepository {
     }
 
     pub fn read_commit(&self, id: &str) -> Commit {
-        let commit_path = self.get_commit_file(id);
+        let commit_path = self.commit_file(id);
         let mut compressed_bytes = vec![];
         fs::File::open(commit_path)
             .expect("Failed to open commit file!")
@@ -123,7 +123,7 @@ impl TitRepository {
     }
 
     pub fn commit_ids(&self) -> Vec<String> {
-        let commit_dir = self.get_commits_dir();
+        let commit_dir = self.commits_dir();
         fs::read_dir(commit_dir)
             .expect("Failed to read commits directory!")
             .map(|entry| {
@@ -144,10 +144,22 @@ impl TitRepository {
     }
 
     pub fn state(&self) -> RepositoryState {
-        RepositoryState::read_from(&self.get_state_file())
+        RepositoryState::read_from(&self.state_file())
     }
 
     pub fn set_state(&self, state: RepositoryState) {
-        state.write_to(&self.get_state_file())
+        state.write_to(&self.state_file())
+    }
+
+    pub fn signed_tree(&self) -> RepositoryTree {
+        RepositoryTree::read_from(&self.tree_file())
+    }
+
+    pub fn current_tree(&self) -> RepositoryTree {
+        RepositoryTree::for_dir(self.root.as_path())
+    }
+
+    pub fn set_signed_tree(&self, after: RepositoryTree) {
+        after.write_to(self.tree_file());
     }
 }
