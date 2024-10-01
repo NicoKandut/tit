@@ -1,11 +1,10 @@
-use crate::error::TitError;
 use crate::terminal::CheckList;
 use crate::util::{from_compressed_bytes, to_compressed_bytes, FileRead, FileWrite};
-use crate::{util, RepositoryTree, TitTree, TIT_DIR};
+use crate::{util, InitError, RepositoryTree, TIT_DIR};
 use crate::{Commit, RepositoryState};
 use std::collections::HashMap;
 use std::fs;
-use std::io::{Read, Write};
+use std::io::{ErrorKind, Read, Write};
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone)]
@@ -27,24 +26,26 @@ impl TitRepository {
         Self { root }
     }
 
-    pub fn init(&self, name: &str, server: &str, branch: &str) -> Result<(), TitError> {
-        let tit_exists = fs::read_dir(&self.root)
-            .expect("Failed to read entries of cwd")
-            .any(|entry| entry.expect("Failed to read entry").file_name() == crate::TIT_DIR);
+    pub fn init(&self, name: &str, server: &str, branch: &str) -> Result<(), InitError> {
+        let mut checklist = CheckList::new(&format!(
+            "Initializing project '{}' in '{}'",
+            name,
+            self.root.display()
+        ));
 
-        if tit_exists {
-            return Err(TitError("Repository already initialized!", None));
+        let dot_tit_dir = self.root.join(TIT_DIR);
+        if dot_tit_dir.exists() {
+            return Err(InitError::AlreadyInitialized);
         }
 
         let root = Path::new(&self.root);
-        let mut checklist = CheckList::new(&format!("Initializing project {name}"));
 
         // create directories
         checklist.start_step("Creating directories".to_string());
-        fs::create_dir(root.join(TIT_DIR))
-            .map_err(|e| TitError("Failed to create .tit folder", Some(e)))?;
-        fs::create_dir(root.join(self.commits_dir()))
-            .map_err(|e| TitError("Failed to create commits folder", Some(e)))?;
+
+        fs::create_dir(&dot_tit_dir).map_err(|_| InitError::DirectoryCreateError(dot_tit_dir))?;
+        let commits_dir = root.join(self.commits_dir());
+        fs::create_dir(&commits_dir).map_err(|_| InitError::DirectoryCreateError(commits_dir))?;
         checklist.finish_step();
 
         // create state file
@@ -61,13 +62,15 @@ impl TitRepository {
         tree.write_to(tree_path);
         checklist.finish_step();
 
-        println!("Done");
         Ok(())
     }
 
-    pub fn uninit(&self) {
-        let tit_dir = Path::new(&self.root).join(TIT_DIR);
-        fs::remove_dir_all(tit_dir).expect("Failed to uninit repository.")
+    pub fn uninit(&self) -> Result<(), InitError> {
+        let tit_dir = self.root.join(TIT_DIR);
+        match fs::remove_dir_all(tit_dir) {
+            Ok(_) => Ok(()),
+            Err(_) => Err(InitError::NotInitialized),
+        }
     }
 
     //<editor-fold> File & Directory Paths

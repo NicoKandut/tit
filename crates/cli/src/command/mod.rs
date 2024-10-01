@@ -5,6 +5,7 @@ mod commits;
 mod init;
 mod servers;
 mod sync;
+mod version;
 
 pub use branches::*;
 pub use changes::*;
@@ -13,3 +14,4 @@ pub use commits::*;
 pub use init::*;
 pub use servers::*;
 pub use sync::*;
+pub use version::*;

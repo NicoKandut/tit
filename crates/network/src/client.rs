@@ -1,8 +1,6 @@
-use std::{collections::BTreeMap, net::TcpStream};
-
+use crate::{read_message, write_message, NetworkError, TitClientMessage, TitServerMessage};
 use kern::Commit;
-
-use crate::{read_message, write_message, TitClientMessage, TitServerMessage};
+use std::{collections::BTreeMap, net::TcpStream};
 
 #[derive(Debug)]
 pub struct TitClient {
@@ -11,12 +9,12 @@ pub struct TitClient {
 
 impl Drop for TitClient {
     fn drop(&mut self) {
-        write_message(&mut self.stream, TitClientMessage::Disconnect);
+        let _ = write_message(&mut self.stream, TitClientMessage::Disconnect);
     }
 }
 
 impl TitClient {
-    pub fn new(server: &str, project: &str) -> Self {
+    pub fn new(server: &str, project: &str) -> Result<Self, NetworkError> {
         let mut stream = TcpStream::connect(server).expect("Failed to connect to server");
 
         write_message(
@@ -24,32 +22,33 @@ impl TitClient {
             TitClientMessage::UseRepository {
                 name: project.to_string(),
             },
-        );
+        )?;
 
         match read_message::<TitServerMessage>(&mut stream) {
-            TitServerMessage::RepositoryCreated | TitServerMessage::Ok => {}
-            _ => panic!("Server responded with unexpected message"),
+            Ok(TitServerMessage::RepositoryCreated | TitServerMessage::Ok) => Ok(Self { stream }),
+            Err(e) => Err(e),
+            _ => Err(NetworkError::UnexpectedMessage),
         }
-
-        Self { stream }
     }
 
-    pub fn download_index(&mut self) -> Result<(Vec<String>, BTreeMap<String, String>), &str> {
-        write_message(&mut self.stream, TitClientMessage::DownloadIndex {});
+    pub fn download_index(
+        &mut self,
+    ) -> Result<(Vec<String>, BTreeMap<String, String>), NetworkError> {
+        write_message(&mut self.stream, TitClientMessage::DownloadIndex)?;
 
-        let message = read_message::<TitServerMessage>(&mut self.stream);
+        let message = read_message::<TitServerMessage>(&mut self.stream)?;
         match message {
             TitServerMessage::Index { commits, branches } => Ok((commits, branches)),
-            _ => Err("Server responded with unexpected message"),
+            _ => Err(NetworkError::UnexpectedMessage),
         }
     }
 
-    pub fn download_commit(&mut self, id: String) -> Result<Commit, &str> {
-        write_message(&mut self.stream, TitClientMessage::DownloadFile { id });
-        let message = read_message::<TitServerMessage>(&mut self.stream);
+    pub fn download_commit(&mut self, id: String) -> Result<Commit, NetworkError> {
+        write_message(&mut self.stream, TitClientMessage::DownloadFile { id })?;
+        let message = read_message::<TitServerMessage>(&mut self.stream)?;
         match message {
             TitServerMessage::CommitFile { commit } => Ok(commit.clone()),
-            _ => Err("Server responded with unexpected message"),
+            _ => Err(NetworkError::UnexpectedMessage),
         }
     }
 
@@ -57,29 +56,31 @@ impl TitClient {
         &mut self,
         commits: Vec<String>,
         branches: BTreeMap<String, String>,
-    ) -> Vec<String> {
+    ) -> Result<Vec<String>, NetworkError> {
         write_message(
             &mut self.stream,
             TitClientMessage::OfferContent { commits, branches },
-        );
+        )?;
 
-        let message = read_message::<TitServerMessage>(&mut self.stream);
+        let message = read_message::<TitServerMessage>(&mut self.stream)?;
         match message {
-            TitServerMessage::RequestUpload { commits } => commits,
-            _ => vec![],
+            TitServerMessage::RequestUpload { commits } => Ok(commits),
+            _ => Err(NetworkError::UnexpectedMessage),
         }
     }
 
-    pub fn upload_changes(&mut self, changes: Vec<Commit>) {
+    pub fn upload_changes(&mut self, changes: Vec<Commit>) -> Result<(), NetworkError> {
         let change_count = changes.len();
         for change in changes {
             write_message(
                 &mut self.stream,
                 TitClientMessage::UploadChanges { changes: change },
-            );
+            )?;
         }
         for _ in 0..change_count {
-            read_message::<TitServerMessage>(&mut self.stream);
+            read_message::<TitServerMessage>(&mut self.stream)?;
         }
+
+        Ok(())
     }
 }

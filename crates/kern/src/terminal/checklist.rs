@@ -11,7 +11,7 @@ pub struct CheckList {
 
 impl CheckList {
     pub fn new(title: &str) -> Self {
-        println!("{}", title);
+        eprintln!("{}", title);
 
         let supports_emoji = platform_supports_emoji();
 
@@ -32,10 +32,10 @@ impl CheckList {
 
     pub fn start_step(&mut self, step: String) {
         self.current_item = step;
-        print!("  {} {}  ", self.in_progress, self.current_item);
+        eprint!("  {} {}  ", self.in_progress, self.current_item);
     }
 
     pub fn finish_step(&mut self) {
-        println!("\r  {} {}  ", self.done, self.current_item);
+        eprintln!("\r  {} {}  ", self.done, self.current_item);
     }
 }

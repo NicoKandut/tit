@@ -7,7 +7,10 @@ use std::{
 };
 
 mod client;
+mod error;
+
 pub use client::*;
+pub use error::*;
 
 #[derive(Debug, Encode, Decode, Default)]
 pub enum TitClientMessage {
@@ -53,33 +56,37 @@ pub enum TitServerMessage {
     },
 }
 
-pub fn write_message(stream: &mut TcpStream, message: impl bincode::enc::Encode) {
+pub fn write_message(
+    stream: &mut TcpStream,
+    message: impl bincode::enc::Encode,
+) -> Result<(), NetworkError> {
     let message_bytes = bincode::encode_to_vec(message, bincode::config::standard())
-        .expect("Failed to serialize message");
+        .map_err(|_| NetworkError::EncodeError)?;
     let length = message_bytes.len() as u64;
     let length_bytes = length.to_le_bytes();
-    stream.write(&length_bytes).expect("Failed to send message");
+
+    stream
+        .write(&length_bytes)
+        .map_err(|_| NetworkError::WriteError)?;
     stream
         .write(&message_bytes)
-        .expect("Failed to send message");
+        .map_err(|_| NetworkError::WriteError)?;
+
+    Ok(())
 }
 
-pub fn read_message<T: Decode + Default>(stream: &mut TcpStream) -> T {
+pub fn read_message<T: Decode + Default>(stream: &mut TcpStream) -> Result<T, NetworkError> {
     let mut length_buffer = [0u8; 8];
     stream
         .read_exact(&mut length_buffer)
-        .expect("Failed to read message length");
+        .map_err(|_| NetworkError::ReadError)?;
     let length = u64::from_le_bytes(length_buffer) as usize;
     let mut message_buffer = vec![0u8; length];
-    match stream.read_exact(&mut message_buffer) {
-        Ok(_) => {}
-        Err(e) => {
-            println!("Error: {}", e);
-            return T::default();
-        }
-    }
+    stream
+        .read_exact(&mut message_buffer)
+        .map_err(|_| NetworkError::ReadError)?;
     let (message, _) = bincode::decode_from_slice(&message_buffer, bincode::config::standard())
-        .expect("Failed to deserialize message");
+        .map_err(|_| NetworkError::DecodeError)?;
 
-    message
+    Ok(message)
 }

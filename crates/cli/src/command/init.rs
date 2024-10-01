@@ -1,6 +1,8 @@
 use std::env::current_dir;
 
-pub fn init(name: Option<String>, server: Option<String>, branch: Option<String>) {
+use crate::exitcode::{EXIT_NOT_FOUND, EXIT_OK, EXIT_UNKNOWN_RESOURCE};
+
+pub fn init(name: Option<String>, server: Option<String>, branch: Option<String>) -> i32 {
     let working_dir = current_dir().expect("Failed to get current working directory!");
 
     let name = name.unwrap_or(
@@ -19,13 +21,22 @@ pub fn init(name: Option<String>, server: Option<String>, branch: Option<String>
     let repository = kern::TitRepository::new(working_dir.clone());
 
     match repository.init(&name, &server, &branch) {
-        Ok(_) => println!("Successful!"),
-        Err(err) => println!("ERROR: {err}"),
+        Ok(_) => EXIT_OK,
+        Err(err) => {
+            eprintln!("ERROR: {err}");
+            EXIT_UNKNOWN_RESOURCE
+        }
     }
 }
 
-pub fn uninit() {
+pub fn uninit() -> i32 {
     let working_dir = current_dir().expect("Failed to get current working directory!");
     let repository = kern::TitRepository::new(working_dir);
-    repository.uninit();
+    match repository.uninit() {
+        Ok(_) => EXIT_OK,
+        Err(e) => {
+            eprintln!("ERROR: {e}");
+            EXIT_NOT_FOUND
+        }
+    }
 }

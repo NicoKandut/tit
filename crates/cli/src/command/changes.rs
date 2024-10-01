@@ -1,6 +1,8 @@
 use kern::TitRepository;
 
-pub fn list_changes() {
+use crate::exitcode::EXIT_OK;
+
+pub fn list_changes() -> i32 {
     let repository = TitRepository::default();
     let before = repository.signed_tree();
     let after = repository.current_tree();
@@ -9,4 +11,6 @@ pub fn list_changes() {
     for change in difference {
         println!("{}", change);
     }
+
+    EXIT_OK
 }

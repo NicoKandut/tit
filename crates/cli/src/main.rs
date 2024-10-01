@@ -1,13 +1,18 @@
+use std::process::exit;
+
 use clap::{Parser, Subcommand};
+use exitcode::EXIT_UNKNOWN_RESOURCE;
 
 mod command;
+mod exitcode;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 #[command(propagate_version = true)]
+#[command(arg_required_else_help = true)]
 struct Cli {
     #[command(subcommand)]
-    command: Option<Subcommands>,
+    command: Subcommands,
 }
 
 #[derive(Subcommand, Debug)]
@@ -47,37 +52,41 @@ enum Subcommands {
     },
 }
 
-const VERSION: &str = env!("CARGO_PKG_VERSION");
-
 fn main() {
     let cli = Cli::parse();
-    let subcommand = cli.command.unwrap_or(Subcommands::Version);
+    let subcommand = cli.command;
 
-    match subcommand {
-        Subcommands::Version => println!("Version {VERSION}"),
-        Subcommands::Init { name, server, branch} => command::init(name, server, branch),
+    let exit_code = match subcommand {
+        Subcommands::Version => command::version(),
+        Subcommands::Init {
+            name,
+            server,
+            branch,
+        } => command::init(name, server, branch),
         Subcommands::Uninit => command::uninit(),
         Subcommands::Sync => command::sync(),
         Subcommands::Create { resource, id } => match resource.as_str() {
             "branch" => command::create_branch(&id),
             "change" => command::commit(id),
-            _ => println!("Unknown resource type: {}", resource),    
+            _ => EXIT_UNKNOWN_RESOURCE,
         },
         Subcommands::Add { resource, id } => match resource.as_str() {
             "server" => command::add_server(&id),
-            _ => println!("Unknown resource type: {}", resource), 
+            _ => EXIT_UNKNOWN_RESOURCE,
         },
         Subcommands::List { resource } => match resource.as_str() {
             "commits" => command::list_commits(),
             "servers" => command::list_servers(),
             "branches" => command::list_branches(),
             "changes" => command::list_changes(),
-            _ => println!("Unknown resource type: {}", resource),
+            _ => EXIT_UNKNOWN_RESOURCE,
         },
         Subcommands::Switch { resource, id } => match resource.as_str() {
             "branch" => command::set_branch(&id),
             "server" => command::set_server(&id),
-            _ => println!("Unknown resource type: {}", resource),
+            _ => EXIT_UNKNOWN_RESOURCE,
         },
-    }
+    };
+
+    exit(exit_code);
 }

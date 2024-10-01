@@ -1,6 +1,8 @@
 use kern::util::get_epoch_millis;
 
-pub fn commit(message: String) {
+use crate::exitcode::EXIT_OK;
+
+pub fn commit(message: String) -> i32 {
     let repository = kern::TitRepository::default();
 
     let before = repository.signed_tree();
@@ -18,4 +20,6 @@ pub fn commit(message: String) {
         .insert(state.current.branch.clone(), commit.get_id());
     repository.set_state(state);
     repository.set_signed_tree(after);
+
+    EXIT_OK
 }

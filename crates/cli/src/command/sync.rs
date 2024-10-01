@@ -1,7 +1,9 @@
 use kern::TitRepository;
 use network::TitClient;
 
-pub fn sync() {
+use crate::exitcode::{EXIT_NETWORK_ERROR, EXIT_OK};
+
+pub fn sync() -> i32 {
     let repository = TitRepository::default();
     let state = repository.state();
     let server_name = state.current.server;
@@ -12,13 +14,16 @@ pub fn sync() {
         "Contacting server {} ({}).",
         server_name, server_address
     ));
-    let mut client = TitClient::new(server_address, &state.project.name);
+    let mut client = match TitClient::new(server_address, &state.project.name) {
+        Ok(client) => client,
+        Err(_) => return EXIT_NETWORK_ERROR,
+    };
     checklist.finish_step();
 
     checklist.start_step(format!("Downloading index"));
     let (commits, branches) = match client.download_index() {
         Ok(index) => index,
-        Err(e) => panic!("Failed to download index: {}", e),
+        Err(_) => return EXIT_NETWORK_ERROR,
     };
     checklist.finish_step();
 
@@ -37,7 +42,10 @@ pub fn sync() {
 
     checklist.start_step("Offering changes to server".to_string());
     let local_commits = repository.commit_ids();
-    let missing_commit_ids = client.offer_content(local_commits, state.branches.clone());
+    let missing_commit_ids = match client.offer_content(local_commits, state.branches.clone()) {
+        Ok(commits) => commits,
+        Err(_) => return EXIT_NETWORK_ERROR,
+    };
 
     checklist.finish_step();
 
@@ -49,7 +57,10 @@ pub fn sync() {
         .iter()
         .map(|id| repository.read_commit(id))
         .collect();
-    client.upload_changes(commits_to_upload);
+    match client.upload_changes(commits_to_upload) {
+        Ok(_) => {}
+        Err(_) => return EXIT_NETWORK_ERROR,
+    }
     checklist.finish_step();
 
     checklist.start_step("Updating branches".to_string());
@@ -62,5 +73,5 @@ pub fn sync() {
     repository.set_state(state.clone());
     checklist.finish_step();
 
-    println!("Done");
+    EXIT_OK
 }
