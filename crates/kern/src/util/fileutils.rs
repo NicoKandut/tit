@@ -1,7 +1,5 @@
-use bincode::{Decode, Encode};
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
-
 use crate::TIT_DIR;
+use bincode::{Decode, Encode};
 use std::{
     env::current_dir,
     fs,
@@ -9,7 +7,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use super::{from_compressed_bytes, from_serialized_bytes, to_compressed_bytes, to_serialized_bytes};
+use super::{from_compressed_bytes, to_compressed_bytes};
 
 pub fn find_tit_root() -> Option<PathBuf> {
     current_dir()

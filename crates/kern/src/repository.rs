@@ -4,7 +4,7 @@ use crate::{util, InitError, RepositoryTree, TIT_DIR};
 use crate::{Commit, RepositoryState};
 use std::collections::HashMap;
 use std::fs;
-use std::io::{ErrorKind, Read, Write};
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone)]

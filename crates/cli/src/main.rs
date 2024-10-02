@@ -17,7 +17,6 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Subcommands {
-    Version,
     Init {
         #[arg(short, long, short = 'n', help = "Name of the repository")]
         name: Option<String>,
@@ -57,7 +56,6 @@ fn main() {
     let subcommand = cli.command;
 
     let exit_code = match subcommand {
-        Subcommands::Version => command::version(),
         Subcommands::Init {
             name,
             server,

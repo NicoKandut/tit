@@ -1,5 +1,5 @@
 use bincode::{Decode, Encode};
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{de::DeserializeOwned, Serialize};
 
 pub fn struct_to_byte_slice<T>(data: &T) -> &[u8] {
     unsafe { std::slice::from_raw_parts(data as *const T as *const u8, size_of::<T>()) }
