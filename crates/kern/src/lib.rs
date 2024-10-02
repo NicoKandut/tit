@@ -10,7 +10,7 @@ pub mod terminal;
 pub mod util;
 pub mod tree;
 mod repositorytree;
-mod hashtree;
+pub mod hashtree;
 
 pub use commit::*;
 pub use change::*;
