@@ -1,3 +1,5 @@
+use crate::util::bytes_to_hex;
+
 use super::node::HashTreeNode;
 use std::{
     fmt::{self, Debug, Formatter},
@@ -275,7 +277,7 @@ impl<T: Hash + Debug> HashTree<T> {
 
 impl<T: Hash + Debug> Debug for HashTreeNode<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?} ({:?})", self.value, self.hash)
+        write!(f, "{:?} ({})", self.value, bytes_to_hex(&self.hash.to_le_bytes()))
     }
 }
 
