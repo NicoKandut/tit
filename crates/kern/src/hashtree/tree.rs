@@ -133,16 +133,23 @@ impl<T: Hash + Debug> HashTree<T> {
     }
 
     pub fn move_node(&mut self, id: usize, parent: usize) -> Result<(), ()> {
+        if self.get_node(parent).is_none()
+            || self.get_node(id).is_none()
+            || self.get_node(id).unwrap().parent.is_none()
+        {
+            return Err(());
+        }
+
         let new_parent = self.get_node_mut(parent).ok_or(())?;
         new_parent.children.push(id);
 
-        let node = self.get_node_mut(id).ok_or(())?; // todo: not atomic...
+        let node = self.get_node_mut(id).ok_or(())?;
         let old_parent = node.parent;
         node.parent = Some(parent);
 
         if let Some(parent_node) = old_parent.map_or(None, |id| self.get_node_mut(id)) {
             parent_node.children.retain(|&child| child != id);
-            self.update_hashes_of_branch(old_parent); // Todo: crash if parent is None
+            self.update_hashes_of_branch(old_parent);
         }
 
         self.update_hashes_of_branch(Some(id));
