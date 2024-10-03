@@ -167,8 +167,10 @@ impl<T: Hash + Debug> HashTree<T> {
             self.values.push(None);
         }
 
-        let node = self.values.swap_remove(id).ok_or(())?;
-        // TODO: also remove child nodes from vector
+        let node = self.free_slot(id)?;
+        for child_id in &node.children {
+            self.remove_nodes_rec(*child_id)?;
+        }
 
         match node.parent {
             Some(parent_id) => {
@@ -181,6 +183,24 @@ impl<T: Hash + Debug> HashTree<T> {
             }
         }
 
+        Ok(node)
+    }
+    
+    fn remove_nodes_rec(&mut self, id: usize) -> Result<(), ()> {
+        let node = self.free_slot(id)?;
+        
+        for child_id in node.children {
+            self.remove_nodes_rec(child_id)?;
+        }
+        
+        Ok(())
+    }
+    
+    fn free_slot(&mut self, id: usize) -> Result<HashTreeNode<T>, ()> {
+        let node = self.values.swap_remove(id).ok_or(())?;
+        if self.first_free_index < Some(id) {
+            self.first_free_index = Some(id);
+        }
         Ok(node)
     }
 
