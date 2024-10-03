@@ -163,10 +163,6 @@ impl<T: Hash + Debug> HashTree<T> {
             return Err(());
         }
 
-        if self.values.last().is_some() {
-            self.values.push(None);
-        }
-
         let node = self.free_slot(id)?;
         for child_id in &node.children {
             self.remove_nodes_rec(*child_id)?;
@@ -197,8 +193,12 @@ impl<T: Hash + Debug> HashTree<T> {
     }
     
     fn free_slot(&mut self, id: usize) -> Result<HashTreeNode<T>, ()> {
+        if self.values.last().is_some() {
+            self.values.push(None);
+        }
+        
         let node = self.values.swap_remove(id).ok_or(())?;
-        if self.first_free_index < Some(id) {
+        if self.first_free_index.is_none() || self.first_free_index.unwrap() > id {
             self.first_free_index = Some(id);
         }
         Ok(node)
