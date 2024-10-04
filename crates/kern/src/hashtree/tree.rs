@@ -1,19 +1,24 @@
-use crate::util::bytes_to_hex;
+use crate::util::{from_serialized_bytes, to_serialized_bytes, FileRead, FileWrite};
 
-use super::node::HashTreeNode;
+use super::{node::HashTreeNode, slot::Slot};
+use core::panic;
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::{
-    fmt::{self, Debug, Formatter},
+    fmt::Debug,
+    fs,
     hash::{DefaultHasher, Hash, Hasher},
+    io::{Read, Write},
 };
 
-pub struct HashTree<T: Hash + Debug> {
-    values: Vec<Option<HashTreeNode<T>>>,
+#[derive(Serialize, Deserialize)]
+pub struct HashTree<T> {
+    values: Vec<Slot<HashTreeNode<T>>>,
     root_id: Option<usize>,
     first_free_index: Option<usize>,
     should_compute_hashes: bool,
 }
 
-impl<T: Hash + Debug> Default for HashTree<T> {
+impl<T> Default for HashTree<T> {
     fn default() -> Self {
         Self {
             values: vec![],
@@ -33,8 +38,12 @@ impl<T: Hash + Debug> HashTree<T> {
         let mut hasher = DefaultHasher::new();
         node.value.hash(&mut hasher);
         for child in &node.children {
-            let child = self.values[*child].as_ref().unwrap();
-            child.hash.hash(&mut hasher);
+            match self.values.get(*child) {
+                Some(Slot::Filled { item: child }) => {
+                    child.hash.hash(&mut hasher);
+                }
+                _ => panic!("Child node not found"),
+            }
         }
         hasher.finish()
     }
@@ -44,9 +53,17 @@ impl<T: Hash + Debug> HashTree<T> {
             return;
         }
 
-        let node = self.values[id].as_ref().unwrap();
+        let node = match self.values.get(id) {
+            Some(Slot::Filled { item }) => item,
+            _ => return,
+        };
+
         let hash = self.compute_hash(node);
-        self.values[id].as_mut().unwrap().hash = hash;
+
+        match self.values.get_mut(id) {
+            Some(Slot::Filled { item }) => item.hash = hash,
+            _ => return,
+        };
     }
 
     pub fn insert(&mut self, parent: usize, value: T) -> Result<usize, ()> {
@@ -62,8 +79,10 @@ impl<T: Hash + Debug> HashTree<T> {
         // update parent
         match parent
             .map_or(None, |parent| self.values.get_mut(parent))
-            .map(|node| node.as_mut().unwrap())
-        {
+            .map_or(None, |s| match s {
+                Slot::Filled { item } => Some(item),
+                _ => None,
+            }) {
             Some(parent_node) => {
                 parent_node.children.push(index);
             }
@@ -76,21 +95,25 @@ impl<T: Hash + Debug> HashTree<T> {
     }
 
     fn insert_at_free_space(&mut self, node: HashTreeNode<T>) -> usize {
+        // find index or insert new
         let index = match self.first_free_index {
-            Some(index) => {
-                self.values[index] = Some(node);
-                index
-            }
+            Some(index) => index,
             None => {
-                self.values.push(Some(node));
+                self.values.push(Slot::new_empty(None, None));
                 self.values.len() - 1
             }
         };
 
-        self.first_free_index = self.values[index..]
-            .as_ref()
-            .iter()
-            .position(|x| x.is_none());
+        // fill slot
+        let slot = self.values.get_mut(index).unwrap();
+        let next_free = match slot {
+            Slot::Empty { next, .. } => next.clone(),
+            _ => panic!("Slot is not empty"),
+        };
+        *slot = Slot::new_filled(node);
+
+        // update first free index
+        self.first_free_index = next_free;
 
         index
     }
@@ -103,7 +126,11 @@ impl<T: Hash + Debug> HashTree<T> {
         let mut current = node;
         while let Some(id) = current {
             self.refresh_hash_at(id);
-            current = self.values[id].as_ref().unwrap().parent;
+            let node = match self.values.get_mut(id).unwrap() {
+                Slot::Filled { item } => item,
+                _ => panic!("Node not found"),
+            };
+            current = node.parent;
         }
     }
 
@@ -115,21 +142,34 @@ impl<T: Hash + Debug> HashTree<T> {
     }
 
     pub fn get_root(&self) -> Option<&HashTreeNode<T>> {
-        self.root_id.map_or(None, |id| self.values[id].as_ref())
+        self.root_id
+            .map_or(None, |id| self.values.get(id))
+            .map_or(None, |s| match s {
+                Slot::Filled { item } => Some(item),
+                _ => None,
+            })
     }
 
     pub fn get_node(&self, id: usize) -> Option<&HashTreeNode<T>> {
-        self.values[id].as_ref()
+        match self.values.get(id) {
+            Some(Slot::Filled { item }) => Some(item),
+            _ => None,
+        }
     }
 
     fn get_node_mut(&mut self, id: usize) -> Option<&mut HashTreeNode<T>> {
-        self.values[id].as_mut()
+        self.values.get_mut(id).map_or(None, |s| match s {
+            Slot::Filled { item } => Some(item),
+            _ => None,
+        })
     }
 
     pub fn set_value(&mut self, id: usize, value: T) -> Result<(), ()> {
         let slot = self.values.get_mut(id).ok_or(())?;
-        let node = slot.as_mut().ok_or(())?;
-        node.value = value;
+        match slot {
+            Slot::Empty { .. } => return Err(()),
+            Slot::Filled { item } => item.value = value,
+        }
         self.update_hashes_of_branch(Some(id));
         Ok(())
     }
@@ -159,8 +199,9 @@ impl<T: Hash + Debug> HashTree<T> {
     }
 
     pub fn remove_node(&mut self, id: usize) -> Result<HashTreeNode<T>, ()> {
-        if self.values[id].is_none() {
-            return Err(());
+        match self.values[id] {
+            Slot::Empty { .. } => return Err(()),
+            _ => {}
         }
 
         let node = self.free_slot(id)?;
@@ -181,74 +222,121 @@ impl<T: Hash + Debug> HashTree<T> {
 
         Ok(node)
     }
-    
+
     fn remove_nodes_rec(&mut self, id: usize) -> Result<(), ()> {
         let node = self.free_slot(id)?;
-        
+
         for child_id in node.children {
             self.remove_nodes_rec(child_id)?;
         }
-        
+
         Ok(())
     }
-    
+
     fn free_slot(&mut self, id: usize) -> Result<HashTreeNode<T>, ()> {
-        if self.values.last().is_some() {
-            self.values.push(None);
+        match self.values[id] {
+            Slot::Empty { .. } => return Err(()),
+            _ => {}
         }
-        
-        let node = self.values.swap_remove(id).ok_or(())?;
-        if self.first_free_index.is_none() || self.first_free_index.unwrap() > id {
-            self.first_free_index = Some(id);
-        }
-        Ok(node)
-    }
 
-    pub fn pretty_print(&self) {
-        let root_id = match self.root_id {
-            Some(id) => id,
-            None => {
-                println!("Empty tree");
-                return;
+        let mut next = None;
+        let mut previous = None;
+        let mut current = self.first_free_index;
+
+        while let Some(index) = current {
+            if index > id {
+                next = current;
+                break;
+            } else {
+                previous = current;
             }
-        };
 
-        self.pretty_print_rec(root_id, "".to_string(), "".to_string(), false, true);
+            match self.values.get(index) {
+                Some(Slot::Empty {
+                    next: next_index, ..
+                }) => {
+                    current = *next_index;
+                }
+                _ => return Err(()),
+            }
+        }
+
+        let empty = Slot::new_empty(previous, next);
+        self.values.push(empty);
+
+        match previous.map_or(None, |i| self.values.get_mut(i)) {
+            Some(Slot::Empty { next, .. }) => *next = Some(id),
+            _ => {}
+        }
+
+        match next.map_or(None, |i| self.values.get_mut(i)) {
+            Some(Slot::Empty { previous, .. }) => *previous = Some(id),
+            _ => {}
+        }
+
+        let slot = self.values.swap_remove(id);
+
+        match slot {
+            Slot::Filled { item } => Ok(item),
+            _ => Err(()),
+        }
     }
 
-    fn pretty_print_rec(
+    #[rustfmt::skip]
+    const INDENT_EMPTY   : &'static str = "    ";
+    #[rustfmt::skip]
+    const INDENT_STRAIGHT: &'static str = "│   ";
+    #[rustfmt::skip]
+    const INDENT_CHILD   : &'static str = "├───";
+    #[rustfmt::skip]
+    const INDENT_LAST    : &'static str = "└───";
+
+    // const INDENT_EMPTY: &'static str = "    ";
+    // const INDENT_STRAIGHT: &'static str = "┃   ";
+    // const INDENT_CHILD: &'static str = "┣━━━";
+    // const INDENT_LAST: &'static str = "┗━━━";
+
+    fn debug_write_rec(
         &self,
+        f: &mut std::fmt::Formatter<'_>,
         id: usize,
         indent: String,
         prefix: String,
         last_flag: bool,
         top_level: bool,
-    ) {
-        let node = self.values[id].as_ref().unwrap();
-        println!("{}{}{:?}", indent, prefix, node);
-
+    ) -> Result<(), std::fmt::Error> {
+        let node = self.get_node(id).unwrap();
+        writeln!(f, "{}{}{:?}", indent, prefix, node)?;
         if node.children.is_empty() {
-            return;
+            return Ok(());
         }
 
         let last = node.children.len() - 1;
+        let mut result = Ok(());
         for (index, child) in node.children.iter().enumerate() {
             let prefix = if index == last {
-                "┗━━━"
+                Self::INDENT_LAST
             } else {
-                "┣━━━"
+                Self::INDENT_CHILD
             };
 
             let indent = if top_level {
                 indent.clone()
             } else if last_flag {
-                indent.clone() + "    "
+                indent.clone() + Self::INDENT_EMPTY
             } else {
-                indent.clone() + "┃   "
+                indent.clone() + Self::INDENT_STRAIGHT
             };
 
-            self.pretty_print_rec(*child, indent, prefix.to_string(), index == last, false);
+            result =
+                self.debug_write_rec(f, *child, indent, prefix.to_string(), index == last, false);
+
+            if result.is_err() {
+                break;
+            }
         }
+
+        result
     }
 
     pub fn refresh_hashes(&mut self) {
@@ -273,7 +361,7 @@ impl<T: Hash + Debug> HashTree<T> {
                 visited[node_idx] = true;
                 stack.push(node_idx);
 
-                let node = self.values[node_idx].as_ref().unwrap();
+                let node = self.get_node(node_idx).unwrap();
                 for &child_id in &node.children {
                     if !visited[child_id] {
                         stack.push(child_id);
@@ -295,43 +383,92 @@ impl<T: Hash + Debug> HashTree<T> {
     }
 }
 
-impl<T: Hash + Debug> Debug for HashTreeNode<T> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?} ({})", self.value, bytes_to_hex(&self.hash.to_le_bytes()))
+impl<T> Debug for HashTree<T>
+where
+    T: Hash + Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let root_id = match self.root_id {
+            Some(id) => id,
+            None => return writeln!(f, "Empty tree"),
+        };
+
+        self.debug_write_rec(f, root_id, "".to_string(), "".to_string(), false, true)
+    }
+}
+
+impl<P, T> FileRead<P> for HashTree<T>
+where
+    P: AsRef<std::path::Path>,
+    T: Hash + Debug + DeserializeOwned,
+{
+    fn read_from(path: P) -> Self {
+        let mut compressed_bytes = vec![];
+        fs::File::open(path)
+            .expect("Failed to open commit file!")
+            .read_to_end(&mut compressed_bytes)
+            .expect("Failed to read commit file!");
+        from_serialized_bytes(&compressed_bytes)
+    }
+}
+
+impl<P, T> FileWrite<P> for HashTree<T>
+where
+    P: AsRef<std::path::Path>,
+    T: Hash + Debug + Serialize,
+{
+    fn write_to(&self, path: P) {
+        let compressed_bytes = to_serialized_bytes(self);
+        fs::File::create(path)
+            .expect("Failed to create file!")
+            .write(&compressed_bytes)
+            .expect("Failed to write commit!");
     }
 }
 
 #[cfg(test)]
 mod test {
+    use std::path::Path;
+
+    use crate::util::{FileRead, FileWrite};
+
     use super::HashTree;
 
     #[test]
+    #[allow(unused)]
     fn it_works() {
         let mut tree = HashTree::default();
         tree.set_should_compute_hashes(false);
 
+        let mut random = 17;
+
+        println!("Inserting...");
+
         let root_id = tree.insert_root("root");
 
-        let child_1_id = tree.insert(root_id, "child1").unwrap();
-        let child_2_id = tree.insert(root_id, "child2").unwrap();
-        let child_1_1_id = tree.insert(child_1_id, "child3").unwrap();
-        let child_1_2_id = tree.insert(child_1_id, "child4").unwrap();
-        let child_1_2_1_id = tree.insert(child_1_2_id, "child5").unwrap();
-        let child_1_2_1_1_id = tree.insert(child_1_2_1_id, "child6").unwrap();
-        let child_1_2_1_1_1_id = tree.insert(child_1_2_1_1_id, "child7").unwrap();
-        let child_1_2_id = tree.insert(child_1_id, "child8").unwrap();
-        let child_2_1_id = tree.insert(child_2_id, "child9").unwrap();
-        let child_2_2_id = tree.insert(child_2_id, "child10").unwrap();
-        let child_2_2_1_id = tree.insert(child_2_2_id, "child11").unwrap();
-        let child_2_2_2_id = tree.insert(child_2_2_id, "child12").unwrap();
-        let child_2_2_3_id = tree.insert(child_2_2_id, "child13").unwrap();
+        for i in 0..1_000_000 {
+            let parent = if i > 0 { random % i } else { 0 };
+            random += 172742;
 
-        let mut parent = child_1_1_id;
+            let child_id = tree.insert(parent, "child").unwrap();
+        }
+
+        println!("Computing hashes...");
 
         tree.set_should_compute_hashes(true);
 
-        tree.pretty_print();
-        tree.move_node(child_2_2_id, child_1_id).unwrap();
-        tree.pretty_print();
+        // println!("{:?}", tree);
+        println!("Saving...");
+
+        let path = Path::new("test.tree");
+
+        tree.write_to(path);
+        println!("Loading...");
+
+        let tree2 = HashTree::<String>::read_from(path);
+
+        // println!("{:?}", tree2);
+
+        println!("Done");
     }
 }
