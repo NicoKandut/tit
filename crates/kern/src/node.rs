@@ -1,9 +1,7 @@
 use std::fmt::Display;
-
-use bincode::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Encode, Decode, Debug, Clone, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, Hash)]
 pub struct Node {
     pub kind: String,
     pub value: Option<String>,

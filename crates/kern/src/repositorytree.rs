@@ -2,15 +2,11 @@ use indextree::{Arena, NodeId};
 use serde::{Deserialize, Serialize};
 use std::{
     fmt, fs,
-    io::{Read, Write},
     path::{Path, PathBuf},
     vec,
 };
 
-use crate::{
-    util::{from_serialized_bytes, to_serialized_bytes, FileRead, FileWrite},
-    Change, Node,
-};
+use crate::{util::BinFile, Change, Node};
 
 #[derive(Clone, Serialize, Deserialize)]
 pub enum DirNode {
@@ -43,6 +39,8 @@ pub struct RepositoryTree {
     nodes: Arena<DirNode>,
     created_at: u128,
 }
+
+impl BinFile for RepositoryTree {}
 
 impl Default for RepositoryTree {
     fn default() -> Self {
@@ -214,26 +212,5 @@ fn parse_ignore_file(path: &Path) -> Vec<String> {
             .collect::<Vec<_>>()
     } else {
         vec![".tit".to_string()]
-    }
-}
-
-impl<P: AsRef<std::path::Path>> FileRead<P> for RepositoryTree {
-    fn read_from(path: P) -> Self {
-        let mut compressed_bytes = vec![];
-        fs::File::open(path)
-            .expect("Failed to open commit file!")
-            .read_to_end(&mut compressed_bytes)
-            .expect("Failed to read commit file!");
-        from_serialized_bytes(&compressed_bytes)
-    }
-}
-
-impl<P: AsRef<std::path::Path>> FileWrite<P> for RepositoryTree {
-    fn write_to(&self, path: P) {
-        let compressed_bytes = to_serialized_bytes(self);
-        fs::File::create(path)
-            .expect("Failed to create file!")
-            .write(&compressed_bytes)
-            .expect("Failed to write commit!");
     }
 }

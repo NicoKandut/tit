@@ -2,13 +2,15 @@ use crate::repositorystorage::RepositoryStorage;
 use network::TitServerMessage;
 use std::net::TcpStream;
 
-pub fn handle(mut stream: TcpStream, storage: RepositoryStorage) {
+pub fn handle(
+    mut stream: TcpStream,
+    storage: RepositoryStorage,
+) -> Result<(), network::NetworkError> {
     let name = match network::read_message::<_>(&mut stream) {
-        network::TitClientMessage::UseRepository { name } => name,
+        Ok(network::TitClientMessage::UseRepository { name }) => name,
         _ => {
             println!("Received unexpected message");
-            network::write_message(&mut stream, network::TitServerMessage::Error);
-            return;
+            return network::write_message(&mut stream, network::TitServerMessage::Error);
         }
     };
 
@@ -22,62 +24,71 @@ pub fn handle(mut stream: TcpStream, storage: RepositoryStorage) {
         },
         |r| (r, network::TitServerMessage::Ok),
     );
-    network::write_message(&mut stream, response);
+
+    network::write_message(&mut stream, response)?;
 
     loop {
         match network::read_message::<_>(&mut stream) {
-            network::TitClientMessage::Disconnect => {
-                println!("Received Disconnect message");
-                break;
-            }
-            network::TitClientMessage::DownloadIndex => {
-                println!("Received DownloadIndex message");
-                let commits = repository.commit_ids();
-                let branches = repository.state().branches;
-                let response = network::TitServerMessage::Index { commits, branches };
-                network::write_message(&mut stream, response);
-            }
-            network::TitClientMessage::DownloadFile { id } => {
-                println!("Received DownloadFile message: {}", id);
-                let commit = kern::Commit::new("commit1".to_string(), vec![], 0, None);
-                let response = network::TitServerMessage::CommitFile { commit };
-                network::write_message(&mut stream, response);
-            }
-            network::TitClientMessage::UploadChanges { changes } => {
-                println!("Received UploadFile message: {}", changes);
-                repository.write_commit(&changes);
-                network::write_message(&mut stream, network::TitServerMessage::Hello);
-            }
-            network::TitClientMessage::CreateRepository { name } => {
-                let response = match storage.create_repository(&name) {
-                    Ok(_) => TitServerMessage::RepositoryCreated,
-                    Err(_) => TitServerMessage::Error,
-                };
-                network::write_message(&mut stream, response);
-            }
-            network::TitClientMessage::OfferContent { commits, branches } => {
-                let missing_commits = set_difference(&commits, &repository.commit_ids());
-                let response = network::TitServerMessage::RequestUpload {
-                    commits: missing_commits,
-                };
-                network::write_message(&mut stream, response);
-
-                let mut state = repository.state();
-                for (name, commit_id) in branches {
-                    state.branches.insert(name, commit_id);
+            Ok(m) => match m {
+                network::TitClientMessage::Disconnect => {
+                    println!("Received Disconnect message");
+                    break;
                 }
-                repository.set_state(state);
-            }
-            _ => {
-                println!("Received unexpected message");
-                network::write_message(&mut stream, network::TitServerMessage::Error);
+                network::TitClientMessage::DownloadIndex => {
+                    println!("Received DownloadIndex message");
+                    let commits = repository.commit_ids();
+                    let branches = repository.state().branches;
+                    let response = network::TitServerMessage::Index { commits, branches };
+                    network::write_message(&mut stream, response)?;
+                }
+                network::TitClientMessage::DownloadFile { id } => {
+                    println!("Received DownloadFile message: {}", id);
+                    let commit = kern::Commit::new("commit1".to_string(), vec![], 0, None);
+                    let response = network::TitServerMessage::CommitFile { commit };
+                    network::write_message(&mut stream, response)?;
+                }
+                network::TitClientMessage::UploadChanges { changes } => {
+                    println!("Received UploadFile message: {}", changes);
+                    repository.write_commit(&changes);
+                    network::write_message(&mut stream, network::TitServerMessage::Hello)?;
+                }
+                network::TitClientMessage::CreateRepository { name } => {
+                    let response = match storage.create_repository(&name) {
+                        Ok(_) => TitServerMessage::RepositoryCreated,
+                        Err(_) => TitServerMessage::Error,
+                    };
+                    network::write_message(&mut stream, response)?;
+                }
+                network::TitClientMessage::OfferContent { commits, branches } => {
+                    let missing_commits = set_difference(&commits, &repository.commit_ids());
+                    let response = network::TitServerMessage::RequestUpload {
+                        commits: missing_commits,
+                    };
+                    network::write_message(&mut stream, response)?;
+
+                    let mut state = repository.state();
+                    for (name, commit_id) in branches {
+                        state.branches.insert(name, commit_id);
+                    }
+                    repository.set_state(state);
+                }
+                _ => {
+                    println!("Received unexpected message");
+                    network::write_message(&mut stream, network::TitServerMessage::Error)?;
+                    break;
+                }
+            },
+            Err(_) => {
+                println!("Failed to read message");
                 break;
             }
         }
     }
+
+    Ok(())
 }
 
-pub fn set_difference<T: PartialEq>(a: &[T], b: &[T]) -> Vec<T> {
+pub fn set_difference<T: PartialEq + Clone>(a: &[T], b: &[T]) -> Vec<T> {
     let mut difference = vec![];
 
     for item in a {

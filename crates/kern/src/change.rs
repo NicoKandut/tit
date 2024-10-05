@@ -3,9 +3,9 @@ use std::fmt::Display;
 
 use crate::node::Node;
 use crate::path::Path;
-use bincode::{Decode, Encode};
+use serde::{Deserialize, Serialize};
 
-#[derive(Encode, Decode, Debug, Clone, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, Hash)]
 pub enum Change {
     Update(Path, Node),
     Addition(Path, Node),
@@ -19,10 +19,6 @@ impl Change {
             Change::Addition(path, _) => path,
             Change::Deletion(path) => path,
         }
-    }
-
-    pub fn as_bytes(&self) -> Vec<u8> {
-        bincode::encode_to_vec(self, bincode::config::standard()).unwrap()
     }
 }
 

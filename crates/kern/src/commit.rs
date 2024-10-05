@@ -1,17 +1,19 @@
-use crate::util::bytes_to_hex;
 use crate::change::Change;
-use bincode::{Decode, Encode};
+use crate::util::{bytes_to_hex, BinFile};
+use serde::{Deserialize, Serialize};
 use sha3::Digest;
 use std::fmt::{Display, Formatter, Write};
 use std::hash::Hash;
 
-#[derive(Encode, Decode, Debug, Clone, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, Hash)]
 pub struct Commit {
     pub message: String,
     pub changes: Vec<Change>,
     pub timestamp: u128,
     pub predecessor_id: Option<String>,
 }
+
+impl BinFile for Commit {}
 
 impl Commit {
     pub fn new(
@@ -28,22 +30,25 @@ impl Commit {
         }
     }
 
-    pub fn encode(&self) -> Vec<u8> {
-        bincode::encode_to_vec(self, bincode::config::standard()).unwrap()
-    }
-
     pub fn get_id(&self) -> String {
         let mut hasher = sha3::Sha3_256::default();
-        hasher.update(self.encode());
+        let bytes = bincode::serde::encode_to_vec(self, bincode::config::standard()).unwrap();
+        hasher.update(&bytes);
         let hash = hasher.finalize();
-        bytes_to_hex(&hash)
+        let id = bytes_to_hex(&hash);
+
+        id
+    }
+
+    pub fn shorten_id(id: &str) -> &str {
+        &id[0..7]
     }
 }
 
 impl Display for Commit {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.write_char('[')?;
-        f.write_str(&self.get_id()[0..7])?;
+        f.write_str(&Self::shorten_id(&self.get_id()))?;
         f.write_str("] ")?;
         f.write_str(&self.message)?;
         f.write_str(" (")?;

@@ -1,5 +1,5 @@
-use bincode::{self, Decode, Encode};
 use kern;
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::{
     collections::BTreeMap,
     io::{Read, Write},
@@ -12,7 +12,7 @@ mod error;
 pub use client::*;
 pub use error::*;
 
-#[derive(Debug, Encode, Decode, Default)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub enum TitClientMessage {
     Hello,
     #[default]
@@ -37,7 +37,7 @@ pub enum TitClientMessage {
     },
 }
 
-#[derive(Debug, Encode, Decode, Default)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub enum TitServerMessage {
     Hello,
     Ok,
@@ -56,11 +56,11 @@ pub enum TitServerMessage {
     },
 }
 
-pub fn write_message(
+pub fn write_message<T: Serialize>(
     stream: &mut TcpStream,
-    message: impl bincode::enc::Encode,
+    message: T,
 ) -> Result<(), NetworkError> {
-    let message_bytes = bincode::encode_to_vec(message, bincode::config::standard())
+    let message_bytes = bincode::serde::encode_to_vec(message, bincode::config::standard())
         .map_err(|_| NetworkError::EncodeError)?;
     let length = message_bytes.len() as u64;
     let length_bytes = length.to_le_bytes();
@@ -75,7 +75,7 @@ pub fn write_message(
     Ok(())
 }
 
-pub fn read_message<T: Decode + Default>(stream: &mut TcpStream) -> Result<T, NetworkError> {
+pub fn read_message<T: DeserializeOwned>(stream: &mut TcpStream) -> Result<T, NetworkError> {
     let mut length_buffer = [0u8; 8];
     stream
         .read_exact(&mut length_buffer)
@@ -85,7 +85,7 @@ pub fn read_message<T: Decode + Default>(stream: &mut TcpStream) -> Result<T, Ne
     stream
         .read_exact(&mut message_buffer)
         .map_err(|_| NetworkError::ReadError)?;
-    let (message, _) = bincode::decode_from_slice(&message_buffer, bincode::config::standard())
+    let (message, _) = bincode::serde::decode_from_slice(&message_buffer, bincode::config::standard())
         .map_err(|_| NetworkError::DecodeError)?;
 
     Ok(message)

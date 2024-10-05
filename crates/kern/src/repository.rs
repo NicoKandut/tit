@@ -1,10 +1,9 @@
 use crate::terminal::CheckList;
-use crate::util::{from_compressed_bytes, to_compressed_bytes, FileRead, FileWrite};
+use crate::util::{FileRead, FileWrite};
 use crate::{util, InitError, RepositoryTree, TIT_DIR};
 use crate::{Commit, RepositoryState};
 use std::collections::HashMap;
 use std::fs;
-use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone)]
@@ -95,23 +94,12 @@ impl TitRepository {
 
     pub fn write_commit(&self, commit: &Commit) {
         let commit_path = self.commit_file(&commit.get_id());
-        let compressed_bytes = to_compressed_bytes(commit);
-        fs::File::create(commit_path.clone())
-            .expect(&format!(
-                "Failed to create commit file! Path: {commit_path:?}"
-            ))
-            .write(&compressed_bytes)
-            .expect("Failed to write commit!");
+        commit.write_to(&commit_path);
     }
 
     pub fn read_commit(&self, id: &str) -> Commit {
         let commit_path = self.commit_file(id);
-        let mut compressed_bytes = vec![];
-        fs::File::open(commit_path)
-            .expect("Failed to open commit file!")
-            .read_to_end(&mut compressed_bytes)
-            .expect("Failed to read commit file!");
-        from_compressed_bytes(&compressed_bytes)
+        Commit::read_from(&commit_path)
     }
 
     pub fn switch_branch(&self, branch_id: &str) {
