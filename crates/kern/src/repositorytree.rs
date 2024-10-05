@@ -6,7 +6,7 @@ use std::{
     vec,
 };
 
-use crate::{util::BinFile, Change, Node};
+use crate::{util::BinaryFile, Change, Node};
 
 #[derive(Clone, Serialize, Deserialize)]
 pub enum DirNode {
@@ -40,7 +40,7 @@ pub struct RepositoryTree {
     created_at: u128,
 }
 
-impl BinFile for RepositoryTree {}
+impl BinaryFile for RepositoryTree {}
 
 impl Default for RepositoryTree {
     fn default() -> Self {

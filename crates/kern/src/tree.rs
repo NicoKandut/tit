@@ -1,15 +1,12 @@
-use std::{fmt, fs};
 use std::io::{Read, Write};
+use std::{fmt, fs};
 
 use indextree::{Arena, NodeId};
 use serde::{Deserialize, Serialize};
 
-use crate::{Change, Node, Path, TitError};
 use crate::tree::node_change::NodeChange;
-use crate::util::{
-    FileRead, FileWrite,
-    from_serialized_bytes, to_serialized_bytes,
-};
+use crate::util::{from_serialized_bytes, to_serialized_bytes, BinaryFileRead, BinaryFileWrite};
+use crate::{Change, Node, Path, TitError};
 
 mod node_change;
 
@@ -31,24 +28,24 @@ impl Default for TitTree {
     }
 }
 
-impl<P: AsRef<std::path::Path>> FileRead<P> for TitTree {
+impl<P: AsRef<std::path::Path>> BinaryFileRead<P> for TitTree {
     fn read_from(path: P) -> Self {
         let mut compressed_bytes = vec![];
         fs::File::open(path)
-            .expect("Failed to open commit file!")
+            .expect("Failed to open tree file!")
             .read_to_end(&mut compressed_bytes)
-            .expect("Failed to read commit file!");
-        from_serialized_bytes(&compressed_bytes)
+            .expect("Failed to read tree file!");
+        from_serialized_bytes(&compressed_bytes).expect("Failed to deserialize tree")
     }
 }
 
-impl<P: AsRef<std::path::Path>> FileWrite<P> for TitTree {
+impl<P: AsRef<std::path::Path>> BinaryFileWrite<P> for TitTree {
     fn write_to(&self, path: P) {
-        let compressed_bytes = to_serialized_bytes(self);
+        let compressed_bytes = to_serialized_bytes(self).expect("Failed to serialize tree");
         fs::File::create(path)
             .expect("Failed to create file!")
             .write(&compressed_bytes)
-            .expect("Failed to write commit!");
+            .expect("Failed to write tree!");
     }
 }
 

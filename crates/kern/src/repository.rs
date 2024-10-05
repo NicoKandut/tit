@@ -1,6 +1,7 @@
+use crate::hashtree::HashTree;
 use crate::terminal::CheckList;
-use crate::util::{FileRead, FileWrite};
-use crate::{util, InitError, RepositoryTree, TIT_DIR};
+use crate::util::{BinaryFileRead, BinaryFileWrite, TomlFileRead, TomlFileWrite};
+use crate::{util, InitError, Node, RepositoryTree, TIT_DIR};
 use crate::{Commit, RepositoryState};
 use std::collections::HashMap;
 use std::fs;
@@ -55,9 +56,9 @@ impl TitRepository {
         checklist.finish_step();
 
         // create tree file
-        checklist.start_step("Creating tree file".to_string());
+        checklist.start_step("Creating hash-tree file".to_string());
         let tree_path = self.tree_file();
-        let tree = RepositoryTree::default();
+        let tree = HashTree::<Node>::default();
         tree.write_to(tree_path);
         checklist.finish_step();
 

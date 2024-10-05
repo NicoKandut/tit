@@ -1,5 +1,5 @@
 use crate::change::Change;
-use crate::util::{bytes_to_hex, BinFile};
+use crate::util::{bytes_to_hex, to_serialized_bytes, BinaryFile};
 use serde::{Deserialize, Serialize};
 use sha3::Digest;
 use std::fmt::{Display, Formatter, Write};
@@ -13,7 +13,7 @@ pub struct Commit {
     pub predecessor_id: Option<String>,
 }
 
-impl BinFile for Commit {}
+impl BinaryFile for Commit {}
 
 impl Commit {
     pub fn new(
@@ -32,7 +32,7 @@ impl Commit {
 
     pub fn get_id(&self) -> String {
         let mut hasher = sha3::Sha3_256::default();
-        let bytes = bincode::serde::encode_to_vec(self, bincode::config::standard()).unwrap();
+        let bytes = to_serialized_bytes(&self).expect("Failed to serialize commit");
         hasher.update(&bytes);
         let hash = hasher.finalize();
         let id = bytes_to_hex(&hash);

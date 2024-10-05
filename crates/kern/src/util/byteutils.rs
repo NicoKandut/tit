@@ -1,3 +1,4 @@
+use bincode::error::{DecodeError, EncodeError};
 use serde::{de::DeserializeOwned, Serialize};
 
 pub fn struct_to_byte_slice<T>(data: &T) -> &[u8] {
@@ -15,18 +16,20 @@ pub fn bytes_to_hex(bytes: &[u8]) -> String {
     })
 }
 
-pub fn to_serialized_bytes<T: Serialize>(value: &T) -> Vec<u8> {
+pub fn to_serialized_bytes<T: Serialize>(value: &T) -> Result<Vec<u8>, EncodeError> {
     let config = bincode::config::standard();
-    let bytes =
-        bincode::serde::encode_to_vec::<_, _>(value, config).expect("Failed to encode commit!");
-    miniz_oxide::deflate::compress_to_vec(&bytes, 10)
+    let bytes = bincode::serde::encode_to_vec::<_, _>(value, config)?;
+    let inflated_bytes = miniz_oxide::deflate::compress_to_vec(&bytes, 10);
+
+    Ok(inflated_bytes)
 }
 
-pub fn from_serialized_bytes<T: DeserializeOwned>(serialized_bytes: &[u8]) -> T {
+pub fn from_serialized_bytes<T: DeserializeOwned>(
+    serialized_bytes: &[u8],
+) -> Result<T, DecodeError> {
     let config = bincode::config::standard();
     let bytes = miniz_oxide::inflate::decompress_to_vec(&serialized_bytes)
         .expect("Failed to decompress commit!");
-    let (value, _) =
-        bincode::serde::decode_from_slice(&bytes, config).expect("Failed to decode commit");
-    value
+    let (value, _) = bincode::serde::decode_from_slice(&bytes, config)?;
+    Ok(value)
 }

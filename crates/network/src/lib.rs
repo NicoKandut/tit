@@ -1,4 +1,7 @@
-use kern;
+use kern::{
+    self,
+    util::{from_serialized_bytes, to_serialized_bytes},
+};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::{
     collections::BTreeMap,
@@ -56,12 +59,8 @@ pub enum TitServerMessage {
     },
 }
 
-pub fn write_message<T: Serialize>(
-    stream: &mut TcpStream,
-    message: T,
-) -> Result<(), NetworkError> {
-    let message_bytes = bincode::serde::encode_to_vec(message, bincode::config::standard())
-        .map_err(|_| NetworkError::EncodeError)?;
+pub fn write_message<T: Serialize>(stream: &mut TcpStream, message: T) -> Result<(), NetworkError> {
+    let message_bytes = to_serialized_bytes(&message).map_err(|_| NetworkError::EncodeError)?;
     let length = message_bytes.len() as u64;
     let length_bytes = length.to_le_bytes();
 
@@ -85,8 +84,8 @@ pub fn read_message<T: DeserializeOwned>(stream: &mut TcpStream) -> Result<T, Ne
     stream
         .read_exact(&mut message_buffer)
         .map_err(|_| NetworkError::ReadError)?;
-    let (message, _) = bincode::serde::decode_from_slice(&message_buffer, bincode::config::standard())
-        .map_err(|_| NetworkError::DecodeError)?;
+
+    let message = from_serialized_bytes(&message_buffer).map_err(|_| NetworkError::DecodeError)?;
 
     Ok(message)
 }

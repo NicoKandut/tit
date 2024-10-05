@@ -1,13 +1,10 @@
-use crate::util::{from_serialized_bytes, to_serialized_bytes, FileRead, FileWrite};
-
 use super::{node::HashTreeNode, slot::Slot};
+use crate::util::BinaryFile;
 use core::panic;
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use std::{
     fmt::Debug,
-    fs,
     hash::{DefaultHasher, Hash, Hasher},
-    io::{Read, Write},
 };
 
 #[derive(Serialize, Deserialize)]
@@ -17,6 +14,8 @@ pub struct HashTree<T> {
     first_free_index: Option<usize>,
     should_compute_hashes: bool,
 }
+
+impl<T> BinaryFile for HashTree<T> {}
 
 impl<T> Default for HashTree<T> {
     fn default() -> Self {
@@ -397,40 +396,11 @@ where
     }
 }
 
-impl<P, T> FileRead<P> for HashTree<T>
-where
-    P: AsRef<std::path::Path>,
-    T: Hash + Debug + DeserializeOwned,
-{
-    fn read_from(path: P) -> Self {
-        let mut compressed_bytes = vec![];
-        fs::File::open(path)
-            .expect("Failed to open commit file!")
-            .read_to_end(&mut compressed_bytes)
-            .expect("Failed to read commit file!");
-        from_serialized_bytes(&compressed_bytes)
-    }
-}
-
-impl<P, T> FileWrite<P> for HashTree<T>
-where
-    P: AsRef<std::path::Path>,
-    T: Hash + Debug + Serialize,
-{
-    fn write_to(&self, path: P) {
-        let compressed_bytes = to_serialized_bytes(self);
-        fs::File::create(path)
-            .expect("Failed to create file!")
-            .write(&compressed_bytes)
-            .expect("Failed to write commit!");
-    }
-}
-
 #[cfg(test)]
 mod test {
     use std::path::Path;
 
-    use crate::util::{FileRead, FileWrite};
+    use crate::util::{BinaryFileRead, BinaryFileWrite};
 
     use super::HashTree;
 
