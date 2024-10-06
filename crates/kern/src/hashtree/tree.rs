@@ -1,5 +1,5 @@
 use super::{node::HashTreeNode, slot::Slot};
-use crate::util::BinaryFile;
+use crate::{util::BinaryFile, Change, Node};
 use core::panic;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -28,7 +28,7 @@ impl<T> Default for HashTree<T> {
     }
 }
 
-impl<T: Hash + Debug> HashTree<T> {
+impl<T: Hash> HashTree<T> {
     pub fn compute_hash(&self, node: &HashTreeNode<T>) -> u64 {
         if !self.should_compute_hashes {
             return 0;
@@ -281,6 +281,83 @@ impl<T: Hash + Debug> HashTree<T> {
         }
     }
 
+    pub fn refresh_hashes(&mut self) {
+        if !self.should_compute_hashes {
+            return;
+        }
+
+        let root_id = match self.root_id {
+            Some(id) => id,
+            None => return,
+        };
+
+        let mut visited = vec![false; self.values.len()];
+        let mut stack: Vec<usize> = Vec::new();
+
+        stack.push(root_id);
+
+        while let Some(node_idx) = stack.pop() {
+            if visited[node_idx] {
+                self.refresh_hash_at(node_idx);
+            } else {
+                visited[node_idx] = true;
+                stack.push(node_idx);
+
+                let node = self.get_node(node_idx).unwrap();
+                for &child_id in &node.children {
+                    if !visited[child_id] {
+                        stack.push(child_id);
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn should_compute_hashes(&self) -> bool {
+        self.should_compute_hashes
+    }
+
+    pub fn set_should_compute_hashes(&mut self, should_compute_hashes: bool) {
+        self.should_compute_hashes = should_compute_hashes;
+        if should_compute_hashes {
+            self.refresh_hashes();
+        }
+    }
+
+    pub fn to_vec(&self) -> Vec<(usize, &HashTreeNode<T>)> {
+        self.values
+            .iter()
+            .enumerate()
+            .filter_map(|slot| match slot {
+                (id, Slot::Filled { item }) => Some((id, item)),
+                _ => None,
+            })
+            .collect::<_>()
+    }
+
+    pub fn to_vec_with_paths(&self) -> Vec<(Vec<usize>, &HashTreeNode<T>)> {
+        self.to_vec()
+            .into_iter()
+            .map(|(id, node)| (self.get_node_path(id), node))
+            .collect::<_>()
+    }
+
+    pub fn get_node_path(&self, id: usize) -> Vec<usize> {
+        let mut path = vec![];
+        let mut current = Some(id);
+
+        while let Some(id) = current {
+            path.push(id);
+            let node = self.get_node(id).unwrap();
+            current = node.parent;
+        }
+
+        path.reverse();
+        path
+    }
+}
+
+impl<T: Hash + Debug> HashTree<T> {
     #[rustfmt::skip]
     const INDENT_EMPTY   : &'static str = "    ";
     #[rustfmt::skip]
@@ -337,48 +414,77 @@ impl<T: Hash + Debug> HashTree<T> {
 
         result
     }
+}
 
-    pub fn refresh_hashes(&mut self) {
-        if !self.should_compute_hashes {
-            return;
-        }
+impl<T: Hash + Debug + PartialEq> HashTree<T> {
+    pub fn difference(&self, other: &Self) -> Vec<Change> {
+        let mut left = self.to_vec_with_paths();
+        let mut right = other.to_vec_with_paths();
+        let mut difference = vec![];
 
-        let root_id = match self.root_id {
-            Some(id) => id,
-            None => return,
-        };
-
-        let mut visited = vec![false; self.values.len()];
-        let mut stack: Vec<usize> = Vec::new();
-
-        stack.push(root_id);
-
-        while let Some(node_idx) = stack.pop() {
-            if visited[node_idx] {
-                self.refresh_hash_at(node_idx);
+        for (l_path, l_node) in left.drain(..) {
+            if let Some(matching) = right
+                .iter()
+                .position(|(r_path, r_node)| *r_path == l_path && **r_node == *l_node)
+            {
+                // no change
+                right.remove(matching);
+            } else if let Some(matching) = right.iter().position(|(_, r_node)| **r_node == *l_node)
+            {
+                let r_path = right[matching].0.clone();
+                difference.push(Change::Update(
+                    vec![],
+                    Node {
+                        kind: "file".to_string(),
+                        value: Some(
+                            r_path
+                                .iter()
+                                .map(|id| (*id).to_string())
+                                .collect::<String>(),
+                        ),
+                        role: Some("moved".to_string()),
+                    },
+                ));
+                right.remove(matching);
+            } else if let Some(matching) = right.iter().position(|(r_path, _)| *r_path == l_path) {
+                let r_path = right[matching].0.clone();
+                difference.push(Change::Update(
+                    vec![],
+                    Node {
+                        kind: "file".to_string(),
+                        value: Some(
+                            r_path
+                                .iter()
+                                .map(|id| (*id).to_string())
+                                .collect::<String>(),
+                        ),
+                        role: Some("changed".to_string()),
+                    },
+                ));
+                right.remove(matching);
             } else {
-                visited[node_idx] = true;
-                stack.push(node_idx);
-
-                let node = self.get_node(node_idx).unwrap();
-                for &child_id in &node.children {
-                    if !visited[child_id] {
-                        stack.push(child_id);
-                    }
-                }
+                difference.push(Change::Deletion(vec![]));
             }
         }
-    }
 
-    pub fn should_compute_hashes(&self) -> bool {
-        self.should_compute_hashes
-    }
-
-    pub fn set_should_compute_hashes(&mut self, should_compute_hashes: bool) {
-        self.should_compute_hashes = should_compute_hashes;
-        if should_compute_hashes {
-            self.refresh_hashes();
+        // anytihng left over in right is an addition
+        for (r_path, _) in right {
+            difference.push(Change::Addition(
+                vec![],
+                Node {
+                    kind: "file".to_string(),
+                    value: Some(
+                        r_path
+                            .iter()
+                            .map(|id| (*id).to_string())
+                            .collect::<String>(),
+                    ),
+                    role: Some("new".to_string()),
+                },
+            ));
         }
+
+        difference
     }
 }
 
@@ -440,5 +546,48 @@ mod test {
         // println!("{:?}", tree2);
 
         println!("Done");
+    }
+
+    #[test]
+    fn test_difference() {
+        let mut tree = HashTree::default();
+        tree.set_should_compute_hashes(false);
+
+        let mut random = 17;
+
+        let root_id = tree.insert_root("root");
+
+        for i in 0..1_000 {
+            let parent = if i > 0 { random % i } else { 0 };
+            random += 172742;
+
+            let child_id = tree.insert(parent, "child").unwrap();
+        }
+
+        let mut tree2 = HashTree::default();
+        tree2.set_should_compute_hashes(false);
+
+        let root_id = tree2.insert_root("root");
+
+        for i in 0..1_000 {
+            let parent = if i > 0 { random % i } else { 0 };
+            random += 172742;
+
+            let child_id = tree2.insert(parent, "child").unwrap();
+        }
+
+        let difference = tree.difference(&tree2);
+
+        for d in difference.iter() {
+            println!("{:?}", d);
+        }
+
+        assert_eq!(difference.len(), 0);
+
+        let child_id = tree2.insert(0, "child").unwrap();
+
+        let difference = tree.difference(&tree2);
+
+        assert_eq!(difference.len(), 1);
     }
 }

@@ -2,7 +2,7 @@ use crate::util::bytes_to_hex;
 use serde::{Deserialize, Serialize};
 use std::fmt::{self, Debug};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, PartialEq, Eq)]
 pub struct HashTreeNode<T> {
     pub value: T,
     pub hash: u64,
