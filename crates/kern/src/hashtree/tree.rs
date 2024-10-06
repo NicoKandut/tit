@@ -563,11 +563,13 @@ mod test {
 
             let child_id = tree.insert(parent, "child").unwrap();
         }
+        tree.refresh_hashes();
 
         let mut tree2 = HashTree::default();
         tree2.set_should_compute_hashes(false);
 
         let root_id = tree2.insert_root("root");
+        let mut random = 17;
 
         for i in 0..1_000 {
             let parent = if i > 0 { random % i } else { 0 };
@@ -575,6 +577,8 @@ mod test {
 
             let child_id = tree2.insert(parent, "child").unwrap();
         }
+        tree2.refresh_hashes();
+
 
         let difference = tree.difference(&tree2);
 
@@ -588,6 +592,10 @@ mod test {
 
         let difference = tree.difference(&tree2);
 
-        assert_eq!(difference.len(), 1);
+        for d in difference.iter() {
+            println!("{:?}", d);
+        }
+
+        assert_eq!(difference.len(), 2); // 1 update for parent + 1 addition for child
     }
 }
