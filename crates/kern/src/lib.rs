@@ -11,6 +11,7 @@ pub mod util;
 pub mod tree;
 mod repositorytree;
 pub mod hashtree;
+mod ignore;
 
 pub use commit::*;
 pub use change::*;

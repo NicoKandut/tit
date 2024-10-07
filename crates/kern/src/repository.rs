@@ -1,7 +1,7 @@
 use crate::hashtree::HashTree;
 use crate::terminal::CheckList;
 use crate::util::{BinaryFileRead, BinaryFileWrite, TomlFileRead, TomlFileWrite};
-use crate::{util, InitError, Node, RepositoryTree, TIT_DIR};
+use crate::{scan_repository, util, InitError, Node, TIT_DIR};
 use crate::{Commit, RepositoryState};
 use std::collections::HashMap;
 use std::fs;
@@ -143,15 +143,15 @@ impl TitRepository {
         state.write_to(&self.state_file())
     }
 
-    pub fn signed_tree(&self) -> RepositoryTree {
-        RepositoryTree::read_from(&self.tree_file())
+    pub fn signed_tree(&self) -> HashTree<Node> {
+        HashTree::<_>::read_from(&self.tree_file())
     }
 
-    pub fn current_tree(&self) -> RepositoryTree {
-        RepositoryTree::for_dir(self.root.as_path())
+    pub fn current_tree(&self) -> HashTree<Node> {
+        scan_repository(self.root.as_path())
     }
 
-    pub fn set_signed_tree(&self, after: RepositoryTree) {
+    pub fn set_signed_tree(&self, after: HashTree<Node>) {
         after.write_to(self.tree_file());
     }
 }
