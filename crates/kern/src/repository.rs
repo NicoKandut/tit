@@ -1,7 +1,7 @@
 use crate::hashtree::HashTree;
 use crate::terminal::CheckList;
 use crate::util::{BinaryFileRead, BinaryFileWrite, TomlFileRead, TomlFileWrite};
-use crate::{scan_repository, util, InitError, Node, TIT_DIR};
+use crate::{build_hash_tree_for_dir, util, InitError, Node, DOT_TIT};
 use crate::{Commit, RepositoryState};
 use std::collections::HashMap;
 use std::fs;
@@ -15,7 +15,7 @@ pub struct TitRepository {
 impl Default for TitRepository {
     fn default() -> Self {
         match util::find_tit_root() {
-            Some(root) => Self { root },
+            Some(root) => Self::new(root),
             None => panic!("Directory is not part of a tit repository."),
         }
     }
@@ -33,7 +33,7 @@ impl TitRepository {
             self.root.display()
         ));
 
-        let dot_tit_dir = self.root.join(TIT_DIR);
+        let dot_tit_dir = self.root.join(DOT_TIT);
         if dot_tit_dir.exists() {
             return Err(InitError::AlreadyInitialized);
         }
@@ -66,17 +66,15 @@ impl TitRepository {
     }
 
     pub fn uninit(&self) -> Result<(), InitError> {
-        let tit_dir = self.root.join(TIT_DIR);
+        let tit_dir = self.root.join(DOT_TIT);
         match fs::remove_dir_all(tit_dir) {
             Ok(_) => Ok(()),
             Err(_) => Err(InitError::NotInitialized),
         }
     }
 
-    //<editor-fold> File & Directory Paths
-
     fn commits_dir(&self) -> PathBuf {
-        self.root.join(crate::TIT_DIR).join(crate::COMMIT_DIR)
+        self.root.join(crate::DOT_TIT).join(crate::COMMIT_DIR)
     }
 
     fn commit_file(&self, commit_id: &str) -> PathBuf {
@@ -84,14 +82,12 @@ impl TitRepository {
     }
 
     fn state_file(&self) -> PathBuf {
-        self.root.join(crate::TIT_DIR).join("state.toml")
+        self.root.join(crate::DOT_TIT).join("state.toml")
     }
 
     fn tree_file(&self) -> PathBuf {
-        self.root.join(crate::TIT_DIR).join("tree.bin")
+        self.root.join(crate::DOT_TIT).join("tree.bin")
     }
-
-    //</editor-fold>
 
     pub fn write_commit(&self, commit: &Commit) {
         let commit_path = self.commit_file(&commit.get_id());
@@ -101,17 +97,6 @@ impl TitRepository {
     pub fn read_commit(&self, id: &str) -> Commit {
         let commit_path = self.commit_file(id);
         Commit::read_from(&commit_path)
-    }
-
-    pub fn switch_branch(&self, branch_id: &str) {
-        let mut state = self.state();
-
-        if (state.branches.get(branch_id)).is_none() {
-            panic!("Branch does not exist!");
-        }
-
-        state.current.branch = branch_id.to_string();
-        self.set_state(state);
     }
 
     pub fn commit_ids(&self) -> Vec<String> {
@@ -148,7 +133,7 @@ impl TitRepository {
     }
 
     pub fn current_tree(&self) -> HashTree<Node> {
-        scan_repository(self.root.as_path())
+        build_hash_tree_for_dir(self.root.as_path())
     }
 
     pub fn set_signed_tree(&self, after: HashTree<Node>) {

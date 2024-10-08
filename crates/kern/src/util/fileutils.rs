@@ -1,5 +1,5 @@
 use super::{from_serialized_bytes, to_serialized_bytes};
-use crate::TIT_DIR;
+use crate::DOT_TIT;
 use serde::{de::DeserializeOwned, Serialize};
 use std::{
     env::current_dir,
@@ -12,7 +12,7 @@ pub fn find_tit_root() -> Option<PathBuf> {
     current_dir()
         .expect("Failed to get current working directory!")
         .ancestors()
-        .find(|dir| dir.join(TIT_DIR).exists())
+        .find(|dir| dir.join(DOT_TIT).exists())
         .map(|dir| dir.to_path_buf())
 }
 

@@ -1,14 +1,14 @@
 use crate::{hashtree::HashTree, ignore::get_ignorelist_of_dir, Node};
 use std::path::Path;
 
-pub fn scan_repository(root_dir: &Path) -> HashTree<Node> {
+const KIND_DIR: &str = "dir";
+const KIND_FILE: &str = "file";
+
+pub fn build_hash_tree_for_dir(root_dir: &Path) -> HashTree<Node> {
     let mut tree = HashTree::default();
     scan_and_add_fs_entry(&mut tree, None, root_dir);
     tree
 }
-
-const KIND_DIR: &str = "dir";
-const KIND_FILE: &str = "file";
 
 fn scan_and_add_fs_entry(arena: &mut HashTree<Node>, parent: Option<usize>, path: &Path) {
     let name = path.file_name().unwrap().to_str().unwrap().to_string();

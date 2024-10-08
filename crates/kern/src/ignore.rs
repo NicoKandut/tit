@@ -1,8 +1,10 @@
 use std::{fs, path::Path};
 
+use crate::{DOT_GIT, DOT_TIT, DOT_TIT_IGNORE};
+
 pub fn get_ignorelist_of_dir(path: &Path) -> Vec<String> {
-    let ignore_file = path.join(".titignore");
-    let mut ignore_list = vec![".tit".to_string(), ".git".to_string()];
+    let ignore_file = path.join(DOT_TIT_IGNORE);
+    let mut ignore_list = vec![DOT_TIT.to_string(), DOT_GIT.to_string()];
 
     if ignore_file.exists() {
         let manually_ignored = read_ignore_file(&ignore_file);
@@ -13,7 +15,10 @@ pub fn get_ignorelist_of_dir(path: &Path) -> Vec<String> {
 }
 
 fn read_ignore_file(path: &Path) -> Vec<String> {
-    let error_msg = format!("Failed to read ignore file at {:?}", path);
-    let contents = fs::read_to_string(path).expect(&error_msg);
-    contents.lines().map(|l| l.to_string()).collect::<Vec<_>>()
+    let contents =
+        fs::read_to_string(path).expect(&format!("Failed to read ignore file at {:?}", path));
+    contents
+        .lines()
+        .map(|l| l.trim().to_string())
+        .collect::<Vec<_>>()
 }

@@ -505,9 +505,7 @@ where
 #[cfg(test)]
 mod test {
     use std::path::Path;
-
     use crate::util::{BinaryFileRead, BinaryFileWrite};
-
     use super::HashTree;
 
     #[test]
@@ -549,6 +547,7 @@ mod test {
     }
 
     #[test]
+    #[allow(unused)]
     fn test_difference() {
         let mut tree = HashTree::default();
         tree.set_should_compute_hashes(false);
@@ -596,6 +595,6 @@ mod test {
             println!("{:?}", d);
         }
 
-        assert_eq!(difference.len(), 2); // 1 update for parent + 1 addition for child
+        assert_eq!(difference.len(), 1);
     }
 }

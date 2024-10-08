@@ -1,6 +1,6 @@
-mod tree;
 mod node;
 mod slot;
+mod tree;
 
-pub use tree::*;
 pub use node::*;
+pub use tree::*;
