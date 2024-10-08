@@ -16,14 +16,20 @@ pub fn sync() -> i32 {
     ));
     let mut client = match TitClient::new(server_address, &state.project.name) {
         Ok(client) => client,
-        Err(_) => return EXIT_NETWORK_ERROR,
+        Err(_) => {
+            checklist.fail();
+            return EXIT_NETWORK_ERROR;
+        }
     };
     checklist.finish_step();
 
     checklist.start_step(format!("Downloading index"));
     let (commits, branches) = match client.download_index() {
         Ok(index) => index,
-        Err(_) => return EXIT_NETWORK_ERROR,
+        Err(_) => {
+            checklist.fail();
+            return EXIT_NETWORK_ERROR;
+        }
     };
     checklist.finish_step();
 
@@ -35,7 +41,10 @@ pub fn sync() -> i32 {
     for id in commits {
         match client.download_commit(id) {
             Ok(commit) => repository.write_commit(&commit),
-            Err(e) => panic!("Failed to download commit: {}", e),
+            Err(_) => {
+                checklist.fail();
+                return EXIT_NETWORK_ERROR;
+            }
         }
     }
     checklist.finish_step();
@@ -44,7 +53,10 @@ pub fn sync() -> i32 {
     let local_commits = repository.commit_ids();
     let missing_commit_ids = match client.offer_content(local_commits, state.branches.clone()) {
         Ok(commits) => commits,
-        Err(_) => return EXIT_NETWORK_ERROR,
+        Err(_) => {
+            checklist.fail();
+            return EXIT_NETWORK_ERROR;
+        }
     };
 
     checklist.finish_step();
@@ -57,9 +69,9 @@ pub fn sync() -> i32 {
         .iter()
         .map(|id| repository.read_commit(id))
         .collect();
-    match client.upload_changes(commits_to_upload) {
-        Ok(_) => {}
-        Err(_) => return EXIT_NETWORK_ERROR,
+    if client.upload_changes(commits_to_upload).is_err() {
+        checklist.fail();
+        return EXIT_NETWORK_ERROR;
     }
     checklist.finish_step();
 

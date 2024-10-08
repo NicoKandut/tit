@@ -7,6 +7,7 @@ pub struct CheckList {
     current_item: String,
     in_progress: String,
     done: String,
+    failed: String,
 }
 
 impl CheckList {
@@ -27,6 +28,11 @@ impl CheckList {
             } else {
                 "✔".to_string()
             },
+            failed: if supports_emoji {
+                "❌".to_string()
+            } else {
+                "✖".to_string()
+            },
         }
     }
 
@@ -37,5 +43,9 @@ impl CheckList {
 
     pub fn finish_step(&mut self) {
         eprintln!("\r  {} {}  ", self.done, self.current_item);
+    }
+
+    pub fn fail(&mut self) {
+        eprintln!("\r  {} {}  ", self.failed, self.current_item);
     }
 }

@@ -30,8 +30,7 @@ pub fn init(name: Option<String>, server: Option<String>, branch: Option<String>
 }
 
 pub fn uninit() -> i32 {
-    let working_dir = current_dir().expect("Failed to get current working directory!");
-    let repository = kern::TitRepository::new(working_dir);
+    let repository = kern::TitRepository::default();
     match repository.uninit() {
         Ok(_) => EXIT_OK,
         Err(e) => {

@@ -15,7 +15,7 @@ impl Drop for TitClient {
 
 impl TitClient {
     pub fn new(server: &str, project: &str) -> Result<Self, NetworkError> {
-        let mut stream = TcpStream::connect(server).expect("Failed to connect to server");
+        let mut stream = TcpStream::connect(server).map_err(|_| NetworkError::Unreachable)?;
 
         write_message(
             &mut stream,

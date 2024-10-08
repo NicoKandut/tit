@@ -3,7 +3,6 @@ members = ["crates/*"]
 resolver = "2"
 
 [workspace.dependencies]
-hashtree = { path "./crates/hashtree" }
 kern = { path = "./crates/kern"}
 network = { path = "./crates/network" }
 parser = { path = "./crates/parser" }
